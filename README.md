@@ -3,6 +3,10 @@
 🚀 Extensão para integrar e gerenciar aplicações da **Vertra Cloud** diretamente pelo **Visual Studio Code**.  
 Com ela, você poderá visualizar, iniciar, parar e reiniciar suas aplicações sem sair do editor.
 
+## 🤖 Criada com Inteligência Artificial
+Essa extensão foi **desenvolvida inteiramente com ajuda de IA**, desde a estrutura inicial até os ajustes de código e documentação.  
+O objetivo é mostrar na prática como é possível acelerar o desenvolvimento utilizando ferramentas de inteligência artificial.
+
 ## 📹 Vídeos
 Estou documentando todo o processo de criação desta extensão em vídeo!  
 Você pode acompanhar no:
