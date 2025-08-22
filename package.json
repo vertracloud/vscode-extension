@@ -1,0 +1,64 @@
+{
+  "name": "vertra-cloud",
+  "displayName": "Vertra Cloud",
+  "description": "Extensão VSCode para gerenciar apps e databases da Vertra Cloud",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vertraCloud",
+          "title": "Vertra Cloud",
+          "icon": "resources/vertra-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "vertraCloud": [
+        {
+          "id": "vertraCloudExplorer",
+          "name": "Gerenciador",
+          "icon": "resources/vertra-icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "vertraCloud.setApiKey",
+        "title": "Vertra Cloud: Cadastrar ou Atualizar API Key"
+      },
+      {
+        "command": "vertraCloud.clearApiKey",
+        "title": "Vertra Cloud: Remover API Key"
+      },
+      {
+        "command": "vertraCloud.showApiKey",
+        "title": "Vertra Cloud: Exibir API Key Atual"
+      },
+      {
+        "command": "vertraCloud.refresh",
+        "title": "Vertra Cloud: Atualizar Árvore"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "20.x",
+    "typescript": "^5.0.0",
+    "tslint": "^6.1.3"
+  }
+}
