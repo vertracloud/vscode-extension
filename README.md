@@ -15,9 +15,8 @@ Você pode acompanhar no:
 - 🎥 [TikTok](https://tiktok.com/@eydrenn)  
 
 ## ⚡ Recursos atuais
-- Configuração da **API Key** da Vertra Cloud.
-- Listagem de aplicações `(MOCK)`.
-- Comandos para **startar, parar e reiniciar** aplicações `(MOCK)`.
+- Configuração obrigatória da **API Key** da Vertra Cloud.
+- Usando a API, estamos listando aplicações e databases através da API KEY.
 
 ## 🔧 Tecnologias utilizadas
 - [TypeScript](https://www.typescriptlang.org/)

@@ -2,7 +2,7 @@
   "name": "vertra-cloud",
   "displayName": "Vertra Cloud",
   "description": "Extensão VSCode para gerenciar apps e databases da Vertra Cloud",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -24,7 +24,7 @@
       "vertraCloud": [
         {
           "id": "vertraCloudExplorer",
-          "name": "Gerenciador",
+          "name": "Extension",
           "icon": "resources/vertra-icon.svg"
         }
       ]
@@ -32,19 +32,34 @@
     "commands": [
       {
         "command": "vertraCloud.setApiKey",
-        "title": "Vertra Cloud: Cadastrar ou Atualizar API Key"
+        "title": "Cadastrar ou Atualizar API Key"
       },
       {
         "command": "vertraCloud.clearApiKey",
-        "title": "Vertra Cloud: Remover API Key"
+        "title": "Remover API Key"
       },
       {
         "command": "vertraCloud.showApiKey",
-        "title": "Vertra Cloud: Exibir API Key Atual"
+        "title": "Exibir API Key Atual"
       },
       {
         "command": "vertraCloud.refresh",
-        "title": "Vertra Cloud: Atualizar Árvore"
+        "title": "Atualizar Árvore"
+      },
+      {
+        "command": "vertraCloud.project.start",
+        "title": "Iniciar",
+        "category": "Projeto"
+      },
+      {
+        "command": "vertraCloud.project.stop",
+        "title": "Parar",
+        "category": "Projeto"
+      },
+      {
+        "command": "vertraCloud.project.restart",
+        "title": "Reiniciar",
+        "category": "Projeto"
       }
     ]
   },
