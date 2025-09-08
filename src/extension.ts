@@ -114,28 +114,20 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
       }>(statusEndpoint);
       statusData = statusRes.data.response;
     } catch (err: unknown) {
-      const axiosError = err as AxiosError;
-      if (axiosError.response?.status === 404 && this.type === "app") {
-        statusData = {
-          running: false,
-          ram: "0",
-          cpu: "0",
-          uptime: 0,
-          created_at: new Date().toISOString(),
-          network: {
-            total: "0KB ↓ 0KB ↑",
-            now: "0KB ↑ 0KB ↓",
-          },
-          status: "down",
-          storage: "0 MB",
-          updated_at: new Date().toISOString(),
-        };
-      } else {
-        vscode.window.showErrorMessage(
-          `Erro ao obter status do ${this.type}: ${axiosError.message || axiosError}`
-        );
-        return element.children || [];
-      }
+      statusData = {
+        running: false,
+        ram: "0",
+        cpu: "0",
+        uptime: 0,
+        created_at: new Date().toISOString(),
+        network: {
+          total: "0KB ↓ 0KB ↑",
+          now: "0KB ↑ 0KB ↓",
+        },
+        status: "down",
+        storage: "0 MB",
+        updated_at: new Date().toISOString(),
+      };
     }
 
     if (statusData) {
