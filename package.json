@@ -2,66 +2,77 @@
   "name": "vertra-cloud",
   "displayName": "Vertra Cloud",
   "description": "Extensão VSCode para gerenciar apps e databases da Vertra Cloud",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": [
-    "Other"
-  ],
+  "categories": ["Other"],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
-        {
-          "id": "vertraCloud",
-          "title": "Vertra Cloud",
-          "icon": "resources/vertra-icon.svg"
-        }
+        { "id": "vertraCloud", "title": "Vertra Cloud", "icon": "resources/vertra-icon.svg" }
       ]
     },
     "views": {
       "vertraCloud": [
-        {
-          "id": "vertraCloudExplorer",
-          "name": "Extension",
-          "icon": "resources/vertra-icon.svg"
-        }
+        { "id": "vertraCloudExplorer", "name": "Extension", "icon": "resources/vertra-icon.svg" }
       ]
     },
     "commands": [
+      { "command": "vertraCloud.setApiKey", "title": "Cadastrar ou Atualizar API Key" },
+      { "command": "vertraCloud.clearApiKey", "title": "Remover API Key" },
+      { "command": "vertraCloud.showApiKey", "title": "Exibir API Key Atual" },
+      { "command": "vertraCloud.refresh", "title": "Atualizar Árvore" },
+      { "command": "vertraCloud.project.start", "title": "Iniciar", "category": "Projeto" },
+      { "command": "vertraCloud.project.stop", "title": "Parar", "category": "Projeto" },
+      { "command": "vertraCloud.project.restart", "title": "Reiniciar", "category": "Projeto" },
       {
-        "command": "vertraCloud.setApiKey",
-        "title": "Cadastrar ou Atualizar API Key"
-      },
-      {
-        "command": "vertraCloud.clearApiKey",
-        "title": "Remover API Key"
-      },
-      {
-        "command": "vertraCloud.showApiKey",
-        "title": "Exibir API Key Atual"
-      },
-      {
-        "command": "vertraCloud.refresh",
-        "title": "Atualizar Árvore"
-      },
-      {
-        "command": "vertraCloud.project.start",
-        "title": "Iniciar",
-        "category": "Projeto"
-      },
-      {
-        "command": "vertraCloud.project.stop",
-        "title": "Parar",
-        "category": "Projeto"
-      },
-      {
-        "command": "vertraCloud.project.restart",
-        "title": "Reiniciar",
-        "category": "Projeto"
+        "command": "vertraCloud.project.viewLogs",
+        "title": "Ver Logs",
+        "category": "Projeto",
+        "icon": "$(terminal)"
       }
-    ]
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "vertraCloud.project.start",
+          "when": "viewItem == app && viewItemRunning != true",
+          "group": "1_actions"
+        },
+        {
+          "command": "vertraCloud.project.stop",
+          "when": "viewItem == app && viewItemRunning == true",
+          "group": "1_actions"
+        },
+        {
+          "command": "vertraCloud.project.restart",
+          "when": "viewItem == app && viewItemRunning == true",
+          "group": "1_actions"
+        },
+        {
+          "command": "vertraCloud.project.start",
+          "when": "viewItem == db && viewItemRunning != true",
+          "group": "1_actions"
+        },
+        {
+          "command": "vertraCloud.project.viewLogs",
+          "when": "viewItem == app",
+          "group": "inline"
+        },
+        {
+          "command": "vertraCloud.project.stop",
+          "when": "viewItem == db && viewItemRunning == true",
+          "group": "1_actions"
+        },
+        {
+          "command": "vertraCloud.project.restart",
+          "when": "viewItem == db && viewItemRunning == true",
+          "group": "1_actions"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
