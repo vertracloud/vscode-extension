@@ -19,9 +19,8 @@
       ]
     },
     "commands": [
-      { "command": "vertraCloud.setApiKey", "title": "Cadastrar ou Atualizar API Key" },
-      { "command": "vertraCloud.clearApiKey", "title": "Remover API Key" },
-      { "command": "vertraCloud.showApiKey", "title": "Exibir API Key Atual" },
+      { "command": "vertraCloud.setApiKey", "title": "Vertra Cloud: Cadastrar ou Atualizar API Key" },
+      { "command": "vertraCloud.clearApiKey", "title": "Vertra Cloud: Remover API Key" },
       {
         "command": "vertraCloud.project.viewLogs",
         "title": "Ver Logs",
