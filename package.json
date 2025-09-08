@@ -2,10 +2,8 @@
   "name": "vertra-cloud",
   "displayName": "Vertra Cloud",
   "description": "Extensão VSCode para gerenciar apps e databases da Vertra Cloud",
-  "version": "0.0.3",
-  "engines": {
-    "vscode": "^1.85.0"
-  },
+  "version": "0.0.4",
+  "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
   "main": "./out/extension.js",
   "contributes": {
@@ -16,60 +14,41 @@
     },
     "views": {
       "vertraCloud": [
-        { "id": "vertraCloudExplorer", "name": "Extension", "icon": "resources/vertra-icon.svg" }
+        { "id": "vertraCloudApps", "name": "Aplicações", "icon": "resources/app-icon.svg" },
+        { "id": "vertraCloudDBs", "name": "Bancos de Dados", "icon": "resources/db-icon.svg" }
       ]
     },
     "commands": [
       { "command": "vertraCloud.setApiKey", "title": "Cadastrar ou Atualizar API Key" },
       { "command": "vertraCloud.clearApiKey", "title": "Remover API Key" },
       { "command": "vertraCloud.showApiKey", "title": "Exibir API Key Atual" },
-      { "command": "vertraCloud.refresh", "title": "Atualizar Árvore" },
-      { "command": "vertraCloud.project.start", "title": "Iniciar", "category": "Projeto" },
-      { "command": "vertraCloud.project.stop", "title": "Parar", "category": "Projeto" },
-      { "command": "vertraCloud.project.restart", "title": "Reiniciar", "category": "Projeto" },
       {
         "command": "vertraCloud.project.viewLogs",
         "title": "Ver Logs",
         "category": "Projeto",
         "icon": "$(terminal)"
-      }
+      },
+      { "command": "vertraCloud.project.startApp", "title": "Iniciar", "category": "Projeto" },
+      { "command": "vertraCloud.project.stopApp", "title": "Parar", "category": "Projeto" },
+      { "command": "vertraCloud.project.restartApp", "title": "Reiniciar", "category": "Projeto" }
     ],
     "menus": {
       "view/item/context": [
+        { "command": "vertraCloud.project.viewLogs", "when": "viewItem == appOnline || viewItem == appOffline", "group": "inline" },
         {
-          "command": "vertraCloud.project.start",
-          "when": "viewItem == app && viewItemRunning != true",
-          "group": "1_actions"
+          "command": "vertraCloud.project.stopApp",
+          "when": "viewItem == appOnline",
+          "group": "1_modification"
         },
         {
-          "command": "vertraCloud.project.stop",
-          "when": "viewItem == app && viewItemRunning == true",
-          "group": "1_actions"
+          "command": "vertraCloud.project.startApp",
+          "when": "viewItem == appOffline",
+          "group": "1_modification"
         },
         {
-          "command": "vertraCloud.project.restart",
-          "when": "viewItem == app && viewItemRunning == true",
-          "group": "1_actions"
-        },
-        {
-          "command": "vertraCloud.project.start",
-          "when": "viewItem == db && viewItemRunning != true",
-          "group": "1_actions"
-        },
-        {
-          "command": "vertraCloud.project.viewLogs",
-          "when": "viewItem == app",
-          "group": "inline"
-        },
-        {
-          "command": "vertraCloud.project.stop",
-          "when": "viewItem == db && viewItemRunning == true",
-          "group": "1_actions"
-        },
-        {
-          "command": "vertraCloud.project.restart",
-          "when": "viewItem == db && viewItemRunning == true",
-          "group": "1_actions"
+          "command": "vertraCloud.project.restartApp",
+          "when": "viewItem == appOnline",
+          "group": "1_modification"
         }
       ]
     }
@@ -77,14 +56,11 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile",
-    "test": "node ./out/test/runTest.js"
+    "watch": "tsc -watch -p ./"
   },
   "devDependencies": {
     "@types/vscode": "^1.85.0",
     "@types/node": "20.x",
-    "typescript": "^5.0.0",
-    "tslint": "^6.1.3"
+    "typescript": "^5.0.0"
   }
 }
