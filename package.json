@@ -2,7 +2,7 @@
   "name": "vertra-cloud",
   "displayName": "Vertra Cloud",
   "description": "Extensão VSCode para gerenciar apps e databases da Vertra Cloud",
-  "version": "0.0.4",
+  "version": "0.0.1",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
   "main": "./out/extension.js",
@@ -52,6 +52,7 @@
       ]
     }
   },
+  "publisher": "VertraCloud",
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
