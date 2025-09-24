@@ -115,18 +115,17 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
       statusData = statusRes.data.response;
     } catch (err: unknown) {
       statusData = {
+        id: "0",
         running: false,
         ram: "0",
         cpu: "0",
         uptime: 0,
-        created_at: new Date().toISOString(),
         network: {
           total: "0KB ↓ 0KB ↑",
           now: "0KB ↑ 0KB ↓",
         },
         status: "down",
         storage: "0 MB",
-        updated_at: new Date().toISOString(),
       };
     }
 
@@ -200,7 +199,7 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
     try {
       const userRes = await this.axiosInstance.get<APIPayload<APIUserInfoResponse>>("/users/@me");
       const userData = userRes.data;
-      if (userData.status !== "success") return;
+      if (userRes.status !== 200 || !userData.response) return;
 
       this.apps.length = 0;
       this.dbs.length = 0;
