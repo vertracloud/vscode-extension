@@ -2,7 +2,7 @@
   "name": "vertra-cloud",
   "displayName": "Vertra Cloud",
   "description": "Extensão VSCode para gerenciar apps e databases da Vertra Cloud",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -111,10 +111,9 @@
   "devDependencies": {
     "@types/node": "20.x",
     "@types/vscode": "^1.85.0",
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
     "@vertracloud/api-types": "^0.0.16",
-    "axios": "^1.12.2"
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "typescript": "^5.0.0"
   }
 }

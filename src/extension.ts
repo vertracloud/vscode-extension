@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import axios, { AxiosInstance, AxiosError } from "axios";
 import {
   APIApplicationStatus,
   APIDatabaseStatus,
@@ -43,39 +42,36 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
 
   private readonly apps: APIApplication[] = [];
   private readonly dbs: APIDatabase[] = [];
-  private readonly axiosInstance: AxiosInstance;
+  private readonly baseURL: string = "https://api.vertracloud.app/v1";
 
   constructor(
     private readonly secretStorage: vscode.SecretStorage,
     private readonly type: "app" | "db"
-  ) {
-    this.axiosInstance = axios.create({
-      baseURL: "https://api.vertracloud.app/v1",
-    });
-  }
+  ) {}
 
   getTreeItem(element: VertraCloudItem): vscode.TreeItem {
     return element;
   }
 
   async getChildren(element?: VertraCloudItem): Promise<VertraCloudItem[]> {
-    const apiKey = await this.secretStorage.get("vertraCloudApiKey");
+    const apiKey: string | undefined = await this.secretStorage.get("vertraCloudApiKey");
     if (!apiKey) {
+      vscode.window.showWarningMessage(
+        "Nenhuma API Key configurada. Por favor, execute o comando 'Vertra Cloud: Cadastrar ou Atualizar API Key'."
+      );
       await vscode.commands.executeCommand("vertraCloud.setApiKey");
       return [];
     }
 
-    this.axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${apiKey}`;
-
     if (!element) {
       if (this.apps.length === 0 && this.dbs.length === 0) {
-        await this.loadProjects();
+        await this.loadProjects(apiKey);
       }
 
       if (this.type === "app") {
         return this.apps.map((app: APIApplication) => {
-          const isUp = app.status === "up";
-          const icon = new vscode.ThemeIcon(
+          const isUp: boolean = app.status === "up";
+          const icon: vscode.ThemeIcon = new vscode.ThemeIcon(
             "circle-filled",
             new vscode.ThemeColor(isUp ? "charts.green" : "charts.red")
           );
@@ -91,7 +87,7 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
         });
       } else {
         return this.dbs.map((db: APIDatabase) => {
-          const icon = new vscode.ThemeIcon(
+          const icon: vscode.ThemeIcon = new vscode.ThemeIcon(
             "circle-filled",
             new vscode.ThemeColor(db.status === "up" ? "charts.green" : "charts.red")
           );
@@ -113,16 +109,18 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
 
     const statusEndpoint: string =
       this.type === "app"
-        ? `/apps/${element.metadata.id}/status`
-        : `/databases/${element.metadata.id}/status`;
+        ? `${this.baseURL}/apps/${element.metadata.id}/status`
+        : `${this.baseURL}/databases/${element.metadata.id}/status`;
 
     let statusData: APIApplicationStatus | APIDatabaseStatus | undefined;
 
     try {
-      const statusRes = await this.axiosInstance.get<{
-        response: APIApplicationStatus | APIDatabaseStatus;
-      }>(statusEndpoint);
-      statusData = statusRes.data.response;
+      const response: Response = await fetch(statusEndpoint, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data: APIPayload<APIApplicationStatus | APIDatabaseStatus> = await response.json() as APIPayload<APIApplicationStatus | APIDatabaseStatus>;
+      statusData = data.response;
     } catch (err: unknown) {
       statusData = {
         id: "0",
@@ -140,11 +138,11 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
       const children: VertraCloudItem[] = [];
       if (this.type === "app") {
         const userApp = this.apps.find((a) => a.id === element.metadata?.id);
-        const ramLimit = userApp?.ram
+        const ramLimit: string = userApp?.ram
           ? `${userApp.ram}MB`
           : `${statusData.ram.replace(/\s+/g, "")}`;
 
-        const statusItem = new VertraCloudItem(
+        const statusItem: VertraCloudItem = new VertraCloudItem(
           `${statusData.running ? "Ligado" : "Desligado"}`,
           vscode.TreeItemCollapsibleState.None,
           undefined,
@@ -155,7 +153,7 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
         statusItem.description = "Status";
         children.push(statusItem);
 
-        const ramItem = new VertraCloudItem(
+        const ramItem: VertraCloudItem = new VertraCloudItem(
           `${parseFloat(statusData.ram).toFixed(1)}MB/${ramLimit}`,
           vscode.TreeItemCollapsibleState.None,
           undefined,
@@ -166,7 +164,7 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
         ramItem.description = "RAM";
         children.push(ramItem);
 
-        const cpuItem = new VertraCloudItem(
+        const cpuItem: VertraCloudItem = new VertraCloudItem(
           `${parseFloat(statusData.cpu).toFixed(2)}%`,
           vscode.TreeItemCollapsibleState.None,
           undefined,
@@ -177,8 +175,8 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
         cpuItem.description = "CPU";
         children.push(cpuItem);
 
-        const uptimeMin = Math.floor((statusData.uptime || 0) / 60);
-        const uptimeItem = new VertraCloudItem(
+        const uptimeMin: number = Math.floor((statusData.uptime || 0) / 60);
+        const uptimeItem: VertraCloudItem = new VertraCloudItem(
           `${uptimeMin} min`,
           vscode.TreeItemCollapsibleState.None,
           undefined,
@@ -200,45 +198,54 @@ class VertraCloudProvider implements vscode.TreeDataProvider<VertraCloudItem> {
     this._onDidChangeTreeData.fire();
   }
 
-  async loadProjects(): Promise<void> {
+  async loadProjects(apiKey: string): Promise<void> {
     try {
-      const userRes = await this.axiosInstance.get<APIPayload<APIUserInfoResponse>>(
-        "/users/@me"
-      );
-      const userData = userRes.data;
-      if (userRes.status !== 200 || !userData.response) return;
+      const response: Response = await fetch(`${this.baseURL}/users/@me`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const userData: APIPayload<APIUserInfoResponse> = await response.json() as APIPayload<APIUserInfoResponse>;
+      if (!userData.response) return;
 
       this.apps.length = 0;
       this.dbs.length = 0;
       this.apps.push(...(userData.response.applications || []));
       this.dbs.push(...(userData.response.databases || []));
     } catch (err: unknown) {
-      const axiosError = err as AxiosError;
       vscode.window.showErrorMessage(
-        `Erro ao carregar projetos: ${axiosError.message || axiosError}`
+        `Erro ao carregar projetos: ${err instanceof Error ? err.message : String(err)}`
       );
     }
   }
 
-  async viewLogs(app: VertraCloudItemMetadata): Promise<void> {
+  async viewLogs(app: VertraCloudItemMetadata, apiKey: string): Promise<void> {
     try {
-      const logsRes = await this.axiosInstance.get<{ response: string }>(
-        `/apps/${app.id}/logs`
-      );
-      const logs = logsRes.data?.response || "Nenhum log disponível";
-      const outputChannel = vscode.window.createOutputChannel(`Logs: ${app.name}`);
+      const response: Response = await fetch(`${this.baseURL}/apps/${app.id}/logs`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data: APIPayload<string> = await response.json() as APIPayload<string>;
+      const logs: string = data.response || "Nenhum log disponível";
+      const outputChannel: vscode.OutputChannel = vscode.window.createOutputChannel(`Logs: ${app.name}`);
       outputChannel.append(logs);
       outputChannel.show();
     } catch (err: unknown) {
-      const axiosError = err as AxiosError;
       vscode.window.showErrorMessage(
-        `Falha ao carregar logs: ${axiosError.message || axiosError}`
+        `Falha ao carregar logs: ${err instanceof Error ? err.message : String(err)}`
       );
     }
   }
 
-  getAxiosInstance(): AxiosInstance {
-    return this.axiosInstance;
+  async sendPostRequest(endpoint: string, apiKey: string): Promise<void> {
+    try {
+      const response: Response = await fetch(`${this.baseURL}${endpoint}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (err: unknown) {
+      throw err;
+    }
   }
 
   getApps(): APIApplication[] {
@@ -258,29 +265,26 @@ export async function activate(
   setApiKey: (key: string) => Promise<void>;
   clearApiKey: () => Promise<void>;
 }> {
-  const secretStorage = context.secrets;
+  const secretStorage: vscode.SecretStorage = context.secrets;
 
-  const appsProvider = new VertraCloudProvider(secretStorage, "app");
-  const dbsProvider = new VertraCloudProvider(secretStorage, "db");
+  const appsProvider: VertraCloudProvider = new VertraCloudProvider(secretStorage, "app");
+  const dbsProvider: VertraCloudProvider = new VertraCloudProvider(secretStorage, "db");
 
   vscode.window.registerTreeDataProvider("vertraCloudApps", appsProvider);
   vscode.window.registerTreeDataProvider("vertraCloudDBs", dbsProvider);
 
-  // Comandos
   context.subscriptions.push(
     vscode.commands.registerCommand("vertraCloud.setApiKey", async () => {
-      const existingKey = await secretStorage.get("vertraCloudApiKey");
-      const apiKey = await vscode.window.showInputBox({
-        prompt: existingKey
-          ? "Digite a nova API Key"
-          : "Digite sua API Key da Vertra Cloud",
+      const existingKey: string | undefined = await secretStorage.get("vertraCloudApiKey");
+      const apiKey: string | undefined = await vscode.window.showInputBox({
+        prompt: existingKey ? "Digite a nova API Key" : "Digite sua API Key da Vertra Cloud",
         ignoreFocusOut: true,
         password: true,
       });
 
       if (apiKey) {
         await secretStorage.store("vertraCloudApiKey", apiKey);
-        await Promise.all([appsProvider.loadProjects(), dbsProvider.loadProjects()]);
+        await Promise.all([appsProvider.loadProjects(apiKey), dbsProvider.loadProjects(apiKey)]);
         appsProvider.refresh();
         dbsProvider.refresh();
         vscode.window.showInformationMessage(
@@ -290,7 +294,7 @@ export async function activate(
     }),
 
     vscode.commands.registerCommand("vertraCloud.clearApiKey", async () => {
-      const existingKey = await secretStorage.get("vertraCloudApiKey");
+      const existingKey: string | undefined = await secretStorage.get("vertraCloudApiKey");
       if (!existingKey) {
         vscode.window.showWarningMessage("Nenhuma API Key está cadastrada.");
         return;
@@ -302,69 +306,71 @@ export async function activate(
     }),
 
     vscode.commands.registerCommand("vertraCloud.project.viewLogs", async (data: VertraCloudItem) => {
-      if (data.metadata) {
-        await appsProvider.viewLogs(data.metadata);
-      }
+      const apiKey: string | undefined = await secretStorage.get("vertraCloudApiKey");
+      if (!apiKey || !data.metadata) return;
+      await appsProvider.viewLogs(data.metadata, apiKey);
     }),
 
     vscode.commands.registerCommand("vertraCloud.project.stopApp", async (item: VertraCloudItem) => {
       if (!item.metadata) return;
-      const app = item.metadata;
+      const app: VertraCloudItemMetadata = item.metadata;
+      const apiKey: string | undefined = await secretStorage.get("vertraCloudApiKey");
+      if (!apiKey) return;
       try {
-        await appsProvider.getAxiosInstance().post(`/apps/${app.id}/stop`);
+        await appsProvider.sendPostRequest(`/apps/${app.id}/stop`, apiKey);
         vscode.window.showInformationMessage(`App ${app.name} parado com sucesso.`);
         const target = appsProvider.getApps().find((a) => a.id === app.id);
         if (target) target.status = "down";
         item.iconPath = new vscode.ThemeIcon("loading~spin");
         appsProvider.refresh();
       } catch (err: unknown) {
-        const axiosError = err as AxiosError;
         vscode.window.showErrorMessage(
-          `Falha ao parar o app: ${axiosError.message || axiosError}`
+          `Falha ao parar o app: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     }),
 
     vscode.commands.registerCommand("vertraCloud.project.startApp", async (item: VertraCloudItem) => {
       if (!item.metadata) return;
-      const app = item.metadata;
+      const app: VertraCloudItemMetadata = item.metadata;
+      const apiKey: string | undefined = await secretStorage.get("vertraCloudApiKey");
+      if (!apiKey) return;
       try {
-        await appsProvider.getAxiosInstance().post(`/apps/${app.id}/start`);
+        await appsProvider.sendPostRequest(`/apps/${app.id}/start`, apiKey);
         vscode.window.showInformationMessage(`App ${app.name} iniciado com sucesso.`);
         const target = appsProvider.getApps().find((a) => a.id === app.id);
         if (target) target.status = "up";
         item.iconPath = new vscode.ThemeIcon("loading~spin");
         appsProvider.refresh();
       } catch (err: unknown) {
-        const axiosError = err as AxiosError;
         vscode.window.showErrorMessage(
-          `Falha ao iniciar o app: ${axiosError.message || axiosError}`
+          `Falha ao iniciar o app: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     }),
 
     vscode.commands.registerCommand("vertraCloud.project.restartApp", async (item: VertraCloudItem) => {
       if (!item.metadata) return;
-      const app = item.metadata;
+      const app: VertraCloudItemMetadata = item.metadata;
+      const apiKey: string | undefined = await secretStorage.get("vertraCloudApiKey");
+      if (!apiKey) return;
       try {
-        await appsProvider.getAxiosInstance().post(`/apps/${app.id}/restart`);
+        await appsProvider.sendPostRequest(`/apps/${app.id}/restart`, apiKey);
         vscode.window.showInformationMessage(`App ${app.name} reiniciado com sucesso.`);
         item.iconPath = new vscode.ThemeIcon("loading~spin");
         appsProvider.refresh();
       } catch (err: unknown) {
-        const axiosError = err as AxiosError;
         vscode.window.showErrorMessage(
-          `Falha ao reiniciar o app: ${axiosError.message || axiosError}`
+          `Falha ao reiniciar o app: ${err instanceof Error ? err.message : String(err)}`
         );
       }
     })
   );
 
-  // Expondo API pública para uso externo
   return {
     setApiKey: async (apiKey: string) => {
       await secretStorage.store("vertraCloudApiKey", apiKey);
-      await Promise.all([appsProvider.loadProjects(), dbsProvider.loadProjects()]);
+      await Promise.all([appsProvider.loadProjects(apiKey), dbsProvider.loadProjects(apiKey)]);
       appsProvider.refresh();
       dbsProvider.refresh();
     },
