@@ -111,10 +111,10 @@
   "devDependencies": {
     "@types/node": "20.x",
     "@types/vscode": "^1.85.0",
-    "@vertracloud/api-types": "^0.0.16",
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@vertracloud/api-types": "^0.0.16",
     "axios": "^1.12.2"
   }
 }
