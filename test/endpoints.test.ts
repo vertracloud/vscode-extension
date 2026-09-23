@@ -78,9 +78,9 @@ test("resource organization routes preserve the personal/workspace scope", async
   await setFavorite(client(), { resource_type: "database", resource_id: "db-1" }, true);
   assert.deepEqual(calls.map((call) => [call.init.method ?? "GET", call.url]), [
     ["GET", `${BASE}/v1/workspaces/w%2F1`],
-    ["POST", `${BASE}/v1/users/me/resource-organization/folders`],
-    ["PATCH", `${BASE}/v1/workspaces/w%2F1/resource-organization/folders/f%2F1`],
-    ["PUT", `${BASE}/v1/workspaces/w%2F1/resource-organization/folders/f%2F1/resources/application/app%2F1`],
-    ["PUT", `${BASE}/v1/users/me/resource-organization/favorites/database/db-1`],
+    ["POST", `${BASE}/v1/users/me/folders`],
+    ["PATCH", `${BASE}/v1/workspaces/w%2F1/folders/f%2F1`],
+    ["PUT", `${BASE}/v1/workspaces/w%2F1/folders/f%2F1/resources/application/app%2F1`],
+    ["PUT", `${BASE}/v1/users/me/favorites/database/db-1`],
   ]);
 });

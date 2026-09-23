@@ -12,8 +12,8 @@ export type OrganizationScope = { workspaceId?: string };
 
 function root(scope?: OrganizationScope): string {
   return scope?.workspaceId
-    ? `/v1/workspaces/${encodeURIComponent(scope.workspaceId)}/resource-organization`
-    : "/v1/users/me/resource-organization";
+    ? `/v1/workspaces/${encodeURIComponent(scope.workspaceId)}`
+    : "/v1/users/me";
 }
 
 export interface CreateFolderBody {
