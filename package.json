@@ -2,7 +2,7 @@
   "name": "vertra-cloud",
   "displayName": "Vertra Cloud",
   "description": "Deploy, logs, metrics, environment variables, snapshots, remote files and databases for Vertra Cloud, inside the editor.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "engines": {
     "vscode": "^1.85.0"
   },
