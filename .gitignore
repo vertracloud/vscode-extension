@@ -4,3 +4,8 @@ node_modules
 .vscode-test/
 *.vsix
 package-lock.json
+# Local AI-agent guidance (never published)
+AGENTS.md
+AGENT.md
+CLAUDE.md
+.claude/
