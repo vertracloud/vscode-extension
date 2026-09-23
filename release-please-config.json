@@ -1,0 +1,47 @@
+{
+	"$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+	"packages": {
+		".": {
+			"release-type": "node",
+			"package-name": "vertra-cloud",
+			"bump-minor-pre-major": true,
+			"changelog-sections": [
+				{
+					"type": "feat",
+					"section": "Features"
+				},
+				{
+					"type": "fix",
+					"section": "Bug Fixes"
+				},
+				{
+					"type": "perf",
+					"section": "Performance"
+				},
+				{
+					"type": "docs",
+					"section": "Documentation",
+					"hidden": true
+				},
+				{
+					"type": "chore",
+					"hidden": true
+				},
+				{
+					"type": "refactor",
+					"hidden": true
+				},
+				{
+					"type": "test",
+					"hidden": true
+				},
+				{
+					"type": "ci",
+					"hidden": true
+				}
+			],
+			"release-as": "0.1.0"
+		}
+	},
+	"include-component-in-tag": false
+}
