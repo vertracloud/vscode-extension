@@ -1,13 +1,14 @@
 {
   "name": "vertra-cloud",
   "displayName": "Vertra Cloud",
-  "description": "Extensão VSCode para gerenciar apps e databases da Vertra Cloud",
-  "version": "0.0.4",
+  "description": "Deploy, logs, metrics, environment variables, snapshots, remote files and databases for Vertra Cloud, inside the editor.",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Programming Languages"
   ],
   "icon": "resources/vertracloud.png",
   "main": "./out/extension.js",
@@ -24,72 +25,1025 @@
     "views": {
       "vertraCloud": [
         {
+          "id": "vertraCloudProject",
+          "name": "%view.project%"
+        },
+        {
           "id": "vertraCloudApps",
-          "name": "Aplicações",
-          "icon": "resources/app-icon.svg"
+          "name": "%view.apps%",
+          "icon": "resources/app-icon.svg",
+          "when": "vertraCloud.connected"
         },
         {
           "id": "vertraCloudDBs",
-          "name": "Bancos de Dados",
-          "icon": "resources/db-icon.svg"
+          "name": "%view.dbs%",
+          "icon": "resources/db-icon.svg",
+          "when": "vertraCloud.connected"
+        },
+        {
+          "id": "vertraCloudWorkspaces",
+          "name": "%view.workspaces%",
+          "when": "vertraCloud.connected"
+        },
+        {
+          "id": "vertraCloudAccount",
+          "name": "%view.account%",
+          "when": "vertraCloud.connected"
         }
       ]
     },
     "commands": [
       {
+        "command": "vertraCloud.useApiKey",
+        "title": "%cmd.vertraCloud.useApiKey%",
+        "category": "Vertra Cloud",
+        "icon": "$(key)"
+      },
+      {
+        "command": "vertraCloud.disconnect",
+        "title": "%cmd.vertraCloud.disconnect%",
+        "category": "Vertra Cloud",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "vertraCloud.refresh",
+        "title": "%cmd.vertraCloud.refresh%",
+        "category": "Vertra Cloud",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vertraCloud.openDashboard",
+        "title": "%cmd.vertraCloud.openDashboard%",
+        "category": "Vertra Cloud",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "vertraCloud.openDocs",
+        "title": "%cmd.vertraCloud.openDocs%",
+        "category": "Vertra Cloud",
+        "icon": "$(book)"
+      },
+      {
+        "command": "vertraCloud.copyId",
+        "title": "%cmd.vertraCloud.copyId%",
+        "category": "Vertra Cloud",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "vertraCloud.project.link",
+        "title": "%cmd.vertraCloud.project.link%",
+        "category": "Vertra Cloud",
+        "icon": "$(link)"
+      },
+      {
+        "command": "vertraCloud.project.unlink",
+        "title": "%cmd.vertraCloud.project.unlink%",
+        "category": "Vertra Cloud",
+        "icon": "$(unlink)"
+      },
+      {
+        "command": "vertraCloud.project.deploy",
+        "title": "%cmd.vertraCloud.project.deploy%",
+        "category": "Vertra Cloud",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "vertraCloud.project.pull",
+        "title": "%cmd.vertraCloud.project.pull%",
+        "category": "Vertra Cloud",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "vertraCloud.project.deployFolder",
+        "title": "%cmd.vertraCloud.project.deployFolder%",
+        "category": "Vertra Cloud",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "vertraCloud.project.createConfig",
+        "title": "%cmd.vertraCloud.project.createConfig%",
+        "category": "Vertra Cloud",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "vertraCloud.project.runChecks",
+        "title": "%cmd.vertraCloud.project.runChecks%",
+        "category": "Vertra Cloud",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "vertraCloud.app.start",
+        "title": "%cmd.vertraCloud.app.start%",
+        "category": "Vertra Cloud",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "vertraCloud.app.stop",
+        "title": "%cmd.vertraCloud.app.stop%",
+        "category": "Vertra Cloud",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "vertraCloud.app.restart",
+        "title": "%cmd.vertraCloud.app.restart%",
+        "category": "Vertra Cloud",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "vertraCloud.app.restartReinstall",
+        "title": "%cmd.vertraCloud.app.restartReinstall%",
+        "category": "Vertra Cloud",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "vertraCloud.app.restartForceBuild",
+        "title": "%cmd.vertraCloud.app.restartForceBuild%",
+        "category": "Vertra Cloud",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "vertraCloud.app.open",
+        "title": "%cmd.vertraCloud.app.open%",
+        "category": "Vertra Cloud",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "vertraCloud.app.showLogs",
+        "title": "%cmd.vertraCloud.app.showLogs%",
+        "category": "Vertra Cloud",
+        "icon": "$(output)"
+      },
+      {
+        "command": "vertraCloud.app.toggleRealtime",
+        "title": "%cmd.vertraCloud.app.toggleRealtime%",
+        "category": "Vertra Cloud",
+        "icon": "$(radio-tower)"
+      },
+      {
+        "command": "vertraCloud.app.showMetrics",
+        "title": "%cmd.vertraCloud.app.showMetrics%",
+        "category": "Vertra Cloud",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "vertraCloud.app.manageEnvs",
+        "title": "%cmd.vertraCloud.app.manageEnvs%",
+        "category": "Vertra Cloud",
+        "icon": "$(symbol-variable)"
+      },
+      {
+        "command": "vertraCloud.app.manageSnapshots",
+        "title": "%cmd.vertraCloud.app.manageSnapshots%",
+        "category": "Vertra Cloud",
+        "icon": "$(history)"
+      },
+      {
+        "command": "vertraCloud.app.openRemoteFiles",
+        "title": "%cmd.vertraCloud.app.openRemoteFiles%",
+        "category": "Vertra Cloud",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "vertraCloud.app.favorite",
+        "title": "%cmd.vertraCloud.app.favorite%",
+        "category": "Vertra Cloud",
+        "icon": "$(star)"
+      },
+      {
+        "command": "vertraCloud.app.unfavorite",
+        "title": "%cmd.vertraCloud.app.unfavorite%",
+        "category": "Vertra Cloud",
+        "icon": "$(star-full)"
+      },
+      {
+        "command": "vertraCloud.db.favorite",
+        "title": "%cmd.vertraCloud.db.favorite%",
+        "category": "Vertra Cloud",
+        "icon": "$(star)"
+      },
+      {
+        "command": "vertraCloud.db.unfavorite",
+        "title": "%cmd.vertraCloud.db.unfavorite%",
+        "category": "Vertra Cloud",
+        "icon": "$(star-full)"
+      },
+      {
+        "command": "vertraCloud.organization.createFolder",
+        "title": "%cmd.vertraCloud.organization.createFolder%",
+        "category": "Vertra Cloud",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "vertraCloud.organization.renameFolder",
+        "title": "%cmd.vertraCloud.organization.renameFolder%",
+        "category": "Vertra Cloud",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "vertraCloud.organization.colorFolder",
+        "title": "%cmd.vertraCloud.organization.colorFolder%",
+        "category": "Vertra Cloud",
+        "icon": "$(paintcan)"
+      },
+      {
+        "command": "vertraCloud.organization.deleteFolder",
+        "title": "%cmd.vertraCloud.organization.deleteFolder%",
+        "category": "Vertra Cloud",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "vertraCloud.organization.addResource",
+        "title": "%cmd.vertraCloud.organization.addResource%",
+        "category": "Vertra Cloud",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "vertraCloud.organization.removeResource",
+        "title": "%cmd.vertraCloud.organization.removeResource%",
+        "category": "Vertra Cloud",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "vertraCloud.app.delete",
+        "title": "%cmd.vertraCloud.app.delete%",
+        "category": "Vertra Cloud",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "vertraCloud.app.publish",
+        "title": "%cmd.vertraCloud.app.publish%",
+        "category": "Vertra Cloud",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "vertraCloud.app.unpublish",
+        "title": "%cmd.vertraCloud.app.unpublish%",
+        "category": "Vertra Cloud",
+        "icon": "$(circle-slash)"
+      },
+      {
+        "command": "vertraCloud.app.setSubdomain",
+        "title": "%cmd.vertraCloud.app.setSubdomain%",
+        "category": "Vertra Cloud",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "vertraCloud.app.showDns",
+        "title": "%cmd.vertraCloud.app.showDns%",
+        "category": "Vertra Cloud",
+        "icon": "$(server-environment)"
+      },
+      {
+        "command": "vertraCloud.app.purgeCache",
+        "title": "%cmd.vertraCloud.app.purgeCache%",
+        "category": "Vertra Cloud",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "vertraCloud.app.showDeploys",
+        "title": "%cmd.vertraCloud.app.showDeploys%",
+        "category": "Vertra Cloud",
+        "icon": "$(history)"
+      },
+      {
+        "command": "vertraCloud.app.editConfig",
+        "title": "%cmd.vertraCloud.app.editConfig%",
+        "category": "Vertra Cloud",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "vertraCloud.db.create",
+        "title": "%cmd.vertraCloud.db.create%",
+        "category": "Vertra Cloud",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vertraCloud.db.start",
+        "title": "%cmd.vertraCloud.db.start%",
+        "category": "Vertra Cloud",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "vertraCloud.db.stop",
+        "title": "%cmd.vertraCloud.db.stop%",
+        "category": "Vertra Cloud",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "vertraCloud.db.showMetrics",
+        "title": "%cmd.vertraCloud.db.showMetrics%",
+        "category": "Vertra Cloud",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "vertraCloud.db.downloadCertificate",
+        "title": "%cmd.vertraCloud.db.downloadCertificate%",
+        "category": "Vertra Cloud",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "vertraCloud.db.resetPassword",
+        "title": "%cmd.vertraCloud.db.resetPassword%",
+        "category": "Vertra Cloud",
+        "icon": "$(key)"
+      },
+      {
+        "command": "vertraCloud.db.manageSnapshots",
+        "title": "%cmd.vertraCloud.db.manageSnapshots%",
+        "category": "Vertra Cloud",
+        "icon": "$(history)"
+      },
+      {
+        "command": "vertraCloud.db.edit",
+        "title": "%cmd.vertraCloud.db.edit%",
+        "category": "Vertra Cloud",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "vertraCloud.db.delete",
+        "title": "%cmd.vertraCloud.db.delete%",
+        "category": "Vertra Cloud",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "vertraCloud.workspace.create",
+        "title": "%cmd.vertraCloud.workspace.create%",
+        "category": "Vertra Cloud",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vertraCloud.workspace.edit",
+        "title": "%cmd.vertraCloud.workspace.edit%",
+        "category": "Vertra Cloud",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "vertraCloud.workspace.linkApp",
+        "title": "%cmd.vertraCloud.workspace.linkApp%",
+        "category": "Vertra Cloud",
+        "icon": "$(link)"
+      },
+      {
+        "command": "vertraCloud.workspace.linkDatabase",
+        "title": "%cmd.vertraCloud.workspace.linkDatabase%",
+        "category": "Vertra Cloud",
+        "icon": "$(link)"
+      },
+      {
+        "command": "vertraCloud.workspace.delete",
+        "title": "%cmd.vertraCloud.workspace.delete%",
+        "category": "Vertra Cloud",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "vertraCloud.workspace.manageInvites",
+        "title": "%cmd.vertraCloud.workspace.manageInvites%",
+        "category": "Vertra Cloud",
+        "icon": "$(mail)"
+      },
+      {
+        "command": "vertraCloud.workspace.openInvite",
+        "title": "%cmd.vertraCloud.workspace.openInvite%",
+        "category": "Vertra Cloud",
+        "icon": "$(mail-read)"
+      },
+      {
+        "command": "vertraCloud.workspace.actionRequests",
+        "title": "%cmd.vertraCloud.workspace.actionRequests%",
+        "category": "Vertra Cloud",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "vertraCloud.workspace.requestAction",
+        "title": "%cmd.vertraCloud.workspace.requestAction%",
+        "category": "Vertra Cloud",
+        "icon": "$(git-pull-request)"
+      },
+      {
+        "command": "vertraCloud.account.showServiceStatus",
+        "title": "%cmd.vertraCloud.account.showServiceStatus%",
+        "category": "Vertra Cloud",
+        "icon": "$(pulse)"
+      },
+      {
         "command": "vertraCloud.setApiKey",
-        "title": "Vertra Cloud: Cadastrar ou Atualizar API Key"
+        "title": "%cmd.vertraCloud.setApiKey%",
+        "category": "Vertra Cloud"
       },
       {
         "command": "vertraCloud.clearApiKey",
-        "title": "Vertra Cloud: Remover API Key"
+        "title": "%cmd.vertraCloud.clearApiKey%",
+        "category": "Vertra Cloud"
       },
       {
         "command": "vertraCloud.project.viewLogs",
-        "title": "Ver Logs",
-        "category": "Projeto",
-        "icon": "$(terminal)"
+        "title": "%cmd.vertraCloud.project.viewLogs%",
+        "category": "Vertra Cloud"
       },
       {
         "command": "vertraCloud.project.startApp",
-        "title": "Iniciar",
-        "category": "Projeto"
+        "title": "%cmd.vertraCloud.project.startApp%",
+        "category": "Vertra Cloud"
       },
       {
         "command": "vertraCloud.project.stopApp",
-        "title": "Parar",
-        "category": "Projeto"
+        "title": "%cmd.vertraCloud.project.stopApp%",
+        "category": "Vertra Cloud"
       },
       {
         "command": "vertraCloud.project.restartApp",
-        "title": "Reiniciar",
-        "category": "Projeto"
+        "title": "%cmd.vertraCloud.project.restartApp%",
+        "category": "Vertra Cloud"
       }
     ],
     "menus": {
-      "view/item/context": [
+      "commandPalette": [
         {
-          "command": "vertraCloud.project.viewLogs",
-          "when": "viewItem == appOnline || viewItem == appOffline",
-          "group": "inline"
+          "command": "vertraCloud.copyId",
+          "when": "false"
         },
         {
-          "command": "vertraCloud.project.stopApp",
-          "when": "viewItem == appOnline",
-          "group": "1_modification"
+          "command": "vertraCloud.app.start",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.stop",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.restart",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.restartReinstall",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.restartForceBuild",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.open",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.favorite",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.unfavorite",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.favorite",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.unfavorite",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.organization.createFolder",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.organization.renameFolder",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.organization.colorFolder",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.organization.deleteFolder",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.organization.addResource",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.organization.removeResource",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.delete",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.publish",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.unpublish",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.setSubdomain",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.showDns",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.purgeCache",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.showDeploys",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.editConfig",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.start",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.stop",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.showMetrics",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.downloadCertificate",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.resetPassword",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.manageSnapshots",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.edit",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.db.delete",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.workspace.edit",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.workspace.linkApp",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.workspace.linkDatabase",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.workspace.delete",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.workspace.manageInvites",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.workspace.actionRequests",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.workspace.requestAction",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.setApiKey",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.clearApiKey",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.project.viewLogs",
+          "when": "false"
         },
         {
           "command": "vertraCloud.project.startApp",
-          "when": "viewItem == appOffline",
-          "group": "1_modification"
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.project.stopApp",
+          "when": "false"
         },
         {
           "command": "vertraCloud.project.restartApp",
-          "when": "viewItem == appOnline",
-          "group": "1_modification"
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "vertraCloud.refresh",
+          "when": "view == vertraCloudProject",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vertraCloud.refresh",
+          "when": "view == vertraCloudApps",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vertraCloud.organization.createFolder",
+          "when": "view == vertraCloudApps && vertraCloud.connected",
+          "group": "navigation@0"
+        },
+        {
+          "command": "vertraCloud.refresh",
+          "when": "view == vertraCloudDBs",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vertraCloud.organization.createFolder",
+          "when": "view == vertraCloudDBs && vertraCloud.connected",
+          "group": "navigation@0"
+        },
+        {
+          "command": "vertraCloud.refresh",
+          "when": "view == vertraCloudWorkspaces",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vertraCloud.organization.createFolder",
+          "when": "view == vertraCloudWorkspaces && vertraCloud.connected",
+          "group": "navigation@0"
+        },
+        {
+          "command": "vertraCloud.refresh",
+          "when": "view == vertraCloudAccount",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vertraCloud.disconnect",
+          "when": "view == vertraCloudAccount && vertraCloud.connected",
+          "group": "navigation@2"
+        },
+        {
+          "command": "vertraCloud.db.create",
+          "when": "view == vertraCloudDBs && vertraCloud.connected",
+          "group": "navigation@0"
+        },
+        {
+          "command": "vertraCloud.workspace.create",
+          "when": "view == vertraCloudWorkspaces && vertraCloud.connected",
+          "group": "navigation@0"
+        },
+        {
+          "command": "vertraCloud.workspace.openInvite",
+          "when": "view == vertraCloudWorkspaces && vertraCloud.connected",
+          "group": "navigation@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "vertraCloud.app.showLogs",
+          "when": "viewItem =~ /^app:/",
+          "group": "inline"
+        },
+        {
+          "command": "vertraCloud.app.open",
+          "when": "viewItem =~ /^app:/",
+          "group": "1_navigation"
+        },
+        {
+          "command": "vertraCloud.app.openRemoteFiles",
+          "when": "viewItem =~ /^app:/",
+          "group": "1_navigation"
+        },
+        {
+          "command": "vertraCloud.app.start",
+          "when": "viewItem =~ /^app:down/",
+          "group": "2_operate"
+        },
+        {
+          "command": "vertraCloud.app.stop",
+          "when": "viewItem =~ /^app:up/",
+          "group": "2_operate"
+        },
+        {
+          "command": "vertraCloud.app.restart",
+          "when": "viewItem =~ /^app:up/",
+          "group": "2_operate"
+        },
+        {
+          "command": "vertraCloud.app.restartReinstall",
+          "when": "viewItem =~ /^app:up/",
+          "group": "2_operate"
+        },
+        {
+          "command": "vertraCloud.app.restartForceBuild",
+          "when": "viewItem =~ /^app:up/",
+          "group": "2_operate"
+        },
+        {
+          "command": "vertraCloud.app.toggleRealtime",
+          "when": "viewItem =~ /^app:/",
+          "group": "3_inspect"
+        },
+        {
+          "command": "vertraCloud.app.showMetrics",
+          "when": "viewItem =~ /^app:/",
+          "group": "3_inspect"
+        },
+        {
+          "command": "vertraCloud.app.showDeploys",
+          "when": "viewItem =~ /^app:/",
+          "group": "3_inspect"
+        },
+        {
+          "command": "vertraCloud.copyId",
+          "when": "viewItem =~ /^app:/",
+          "group": "3_inspect"
+        },
+        {
+          "command": "vertraCloud.app.manageEnvs",
+          "when": "viewItem =~ /^app:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.manageSnapshots",
+          "when": "viewItem =~ /^app:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.editConfig",
+          "when": "viewItem =~ /^app:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.setSubdomain",
+          "when": "viewItem =~ /^app:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.showDns",
+          "when": "viewItem =~ /^app:.*:published/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.purgeCache",
+          "when": "viewItem =~ /^app:.*:published/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.publish",
+          "when": "viewItem =~ /^app:(?!.*:published)/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.unpublish",
+          "when": "viewItem =~ /^app:.*:published/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.favorite",
+          "when": "viewItem =~ /^app:(?!.*:favorite)/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.unfavorite",
+          "when": "viewItem =~ /^app:.*:favorite/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.organization.addResource",
+          "when": "viewItem =~ /^(app|db):/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.organization.removeResource",
+          "when": "viewItem =~ /^(app|db):.*:folder/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.organization.renameFolder",
+          "when": "viewItem =~ /^resource-folder:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.organization.colorFolder",
+          "when": "viewItem =~ /^resource-folder:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.organization.addResource",
+          "when": "viewItem =~ /^resource-folder:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.organization.deleteFolder",
+          "when": "viewItem =~ /^resource-folder:/",
+          "group": "5_danger"
+        },
+        {
+          "command": "vertraCloud.app.delete",
+          "when": "viewItem =~ /^app:/",
+          "group": "5_danger"
+        },
+        {
+          "command": "vertraCloud.db.showMetrics",
+          "when": "viewItem =~ /^db:/",
+          "group": "3_inspect"
+        },
+        {
+          "command": "vertraCloud.copyId",
+          "when": "viewItem =~ /^db:/",
+          "group": "3_inspect"
+        },
+        {
+          "command": "vertraCloud.db.start",
+          "when": "viewItem =~ /^db:down/",
+          "group": "2_operate"
+        },
+        {
+          "command": "vertraCloud.db.stop",
+          "when": "viewItem =~ /^db:up/",
+          "group": "2_operate"
+        },
+        {
+          "command": "vertraCloud.db.downloadCertificate",
+          "when": "viewItem =~ /^db:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.db.resetPassword",
+          "when": "viewItem =~ /^db:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.db.manageSnapshots",
+          "when": "viewItem =~ /^db:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.db.edit",
+          "when": "viewItem =~ /^db:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.db.delete",
+          "when": "viewItem =~ /^db:/",
+          "group": "5_danger"
+        },
+        {
+          "command": "vertraCloud.db.favorite",
+          "when": "viewItem =~ /^db:(?!.*:favorite)/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.db.unfavorite",
+          "when": "viewItem =~ /^db:.*:favorite/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.workspace.edit",
+          "when": "viewItem == workspace",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.workspace.linkApp",
+          "when": "viewItem == workspace",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.workspace.linkDatabase",
+          "when": "viewItem == workspace",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.workspace.manageInvites",
+          "when": "viewItem == workspace",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.workspace.actionRequests",
+          "when": "viewItem == workspace",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.workspace.requestAction",
+          "when": "viewItem == workspace",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.workspace.delete",
+          "when": "viewItem == workspace",
+          "group": "5_danger"
+        },
+        {
+          "command": "vertraCloud.organization.createFolder",
+          "when": "viewItem == workspace",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.project.deploy",
+          "when": "viewItem =~ /^project/",
+          "group": "inline@1"
+        },
+        {
+          "command": "vertraCloud.app.showLogs",
+          "when": "viewItem =~ /^project/",
+          "group": "inline@2"
+        },
+        {
+          "command": "vertraCloud.app.open",
+          "when": "viewItem =~ /^project:published/",
+          "group": "inline@3"
+        },
+        {
+          "command": "vertraCloud.app.restart",
+          "when": "viewItem =~ /^project/",
+          "group": "inline@4"
+        },
+        {
+          "command": "vertraCloud.project.deploy",
+          "when": "viewItem =~ /^project/",
+          "group": "1_navigation"
+        },
+        {
+          "command": "vertraCloud.project.pull",
+          "when": "viewItem =~ /^project/",
+          "group": "1_navigation"
+        },
+        {
+          "command": "vertraCloud.project.deployFolder",
+          "when": "viewItem =~ /^project/",
+          "group": "1_navigation"
+        },
+        {
+          "command": "vertraCloud.project.runChecks",
+          "when": "viewItem =~ /^project/",
+          "group": "3_inspect"
+        },
+        {
+          "command": "vertraCloud.project.createConfig",
+          "when": "viewItem =~ /^project/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.project.unlink",
+          "when": "viewItem =~ /^project/",
+          "group": "5_danger"
+        },
+        {
+          "command": "vertraCloud.account.showServiceStatus",
+          "when": "viewItem == account",
+          "group": "3_inspect"
         }
       ]
-    }
+    },
+    "viewsWelcome": [
+      {
+        "view": "vertraCloudProject",
+        "contents": "%welcome.disconnected%",
+        "when": "!vertraCloud.connected"
+      },
+      {
+        "view": "vertraCloudProject",
+        "contents": "%welcome.project.needsLink%",
+        "when": "vertraCloud.connected && !vertraCloud.hasLink"
+      },
+      {
+        "view": "vertraCloudApps",
+        "contents": "%welcome.apps.empty%",
+        "when": "vertraCloud.connected && vertraCloud.appsEmpty"
+      },
+      {
+        "view": "vertraCloudDBs",
+        "contents": "%welcome.dbs.empty%",
+        "when": "vertraCloud.connected && vertraCloud.dbsEmpty"
+      }
+    ],
+    "languages": [
+      {
+        "id": "vertracloud-config",
+        "aliases": [
+          "Vertra Cloud Config"
+        ],
+        "filenames": [
+          "vertracloud.config"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "vertracloud-config",
+        "scopeName": "source.vertracloud-config",
+        "path": "./syntaxes/vertracloud-config.tmLanguage.json"
+      }
+    ]
   },
   "publisher": "VertraCloud",
   "repository": {
@@ -98,22 +1052,60 @@
   },
   "keywords": [
     "vertra",
-    "cloud",
     "vertracloud",
-    "vscode",
-    "extension"
+    "cloud",
+    "deploy",
+    "hosting",
+    "paas"
   ],
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.mjs --production",
+    "build:dev": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "lint": "eslint src test",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "mkdir -p dist && npm run build && vsce package --no-dependencies -o dist/vertra-cloud-$npm_package_version.vsix",
+    "package:inspect": "vsce ls",
+    "package:check": "node scripts/inspect-vsix.mjs",
+    "package:dev": "mkdir -p dist && VERTRA_API_URL=${VERTRA_API_URL:-http://localhost:4000} vsce package --no-dependencies -o dist/vertra-cloud-$npm_package_version-dev.vsix"
   },
   "devDependencies": {
-    "@types/node": "20.x",
+    "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
-    "@vertracloud/api-types": "^0.0.16",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2",
-    "typescript": "^5.0.0"
-  }
+    "@types/yauzl": "^3.4.0",
+    "@types/yazl": "^3.3.1",
+    "@vertracloud/api-types": "0.2.0",
+    "@vscode/l10n-dev": "^0.0.35",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.0.0",
+    "ovsx": "^1.2.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vite": "^7.0.0",
+    "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "ignore": "^7.0.9",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1"
+  },
+  "l10n": "./l10n",
+  "activationEvents": [
+    "workspaceContains:**/vertracloud.config",
+    "onLanguage:vertracloud-config",
+    "onFileSystem:vertra"
+  ],
+  "galleryBanner": {
+    "color": "#0f0f10",
+    "theme": "dark"
+  },
+  "bugs": {
+    "url": "https://github.com/vertracloud/vscode-extension/issues"
+  },
+  "homepage": "https://docs.vertracloud.app/vscode-extension",
+  "license": "MIT"
 }
