@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Vertra Cloud Config",
+  "scopeName": "source.vertracloud-config",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#entry" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.vertracloud-config",
+      "match": "^\\s*#.*$"
+    },
+    "entry": {
+      "match": "^\\s*([A-Za-z_][A-Za-z0-9_]*)\\s*(=)\\s*(.*)$",
+      "captures": {
+        "1": { "name": "keyword.other.key.vertracloud-config" },
+        "2": { "name": "keyword.operator.assignment.vertracloud-config" },
+        "3": { "name": "string.unquoted.value.vertracloud-config" }
+      }
+    }
+  }
+}
