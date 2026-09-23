@@ -1073,7 +1073,7 @@
     "package:dev": "mkdir -p dist && VERTRA_API_URL=${VERTRA_API_URL:-http://localhost:4000} vsce package --no-dependencies -o dist/vertra-cloud-$npm_package_version-dev.vsix"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^24.0.0",
     "@types/vscode": "^1.85.0",
     "@types/yauzl": "^3.4.0",
     "@types/yazl": "^3.3.1",
