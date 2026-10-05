@@ -288,6 +288,7 @@ export class FileSystemError extends Error {
   static FileNotFound = (arg?: unknown) => new FileSystemError(String(arg ?? ""), "FileNotFound");
   static FileExists = (arg?: unknown) => new FileSystemError(String(arg ?? ""), "FileExists");
   static FileIsADirectory = (arg?: unknown) => new FileSystemError(String(arg ?? ""), "FileIsADirectory");
+  static FileNotADirectory = (arg?: unknown) => new FileSystemError(String(arg ?? ""), "FileNotADirectory");
   static NoPermissions = (arg?: unknown) => new FileSystemError(String(arg ?? ""), "NoPermissions");
   static Unavailable = (arg?: unknown) => new FileSystemError(String(arg ?? ""), "Unavailable");
 }

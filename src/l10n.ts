@@ -42,6 +42,8 @@ export function describeError(err: ApiErrorLike): string {
       return vscode.l10n.t("Your plan doesn't support publishing to the web.");
     case "PLAN_DOES_NOT_SUPPORT_CUSTOM_SUBDOMAIN":
       return vscode.l10n.t("Your plan doesn't support a custom subdomain.");
+    case "FREE_PLAN_SUSPENDED":
+      return vscode.l10n.t("The Free plan is suspended. Choose a paid plan to create applications and databases.");
     case "PLAN_NOT_ALLOWED":
       return vscode.l10n.t("Your plan doesn't allow this action.");
     case "OPERATION_IN_PROGRESS":

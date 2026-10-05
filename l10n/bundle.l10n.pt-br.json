@@ -312,5 +312,6 @@
   "Select the action to request": "Selecione a ação a pedir",
   "No resources in this workspace for this action.": "Nenhum recurso neste workspace para esta ação.",
   "No snapshots available.": "Nenhum snapshot disponível.",
-  "Request sent for approval.": "Pedido enviado para aprovação."
+  "Request sent for approval.": "Pedido enviado para aprovação.",
+  "The Free plan is suspended. Choose a paid plan to create applications and databases.": "O plano Free está suspenso. Escolha um plano pago para criar aplicações e bancos de dados."
 }

@@ -98,6 +98,13 @@ describe("VertraFileSystemProvider", () => {
     assert.deepEqual(put?.body, { content: "new", last_modified: "2026-09-01T12:00:00.000Z" });
   });
 
+  it("PATH_IS_FILE vira FileNotADirectory", async () => {
+    const { client } = fakeClient(() => apiError("PATH_IS_FILE", 409));
+    const provider = new VertraFileSystemProvider(client);
+
+    await assert.rejects(provider.readDirectory(remoteUri("app-1", "a.txt")), (err: Error) => /NotADirectory/i.test((err as { code?: string }).code ?? ""));
+  });
+
   it("FILE_MODIFIED vira erro de sistema de arquivos", async () => {
     const { client } = fakeClient((call) => {
       if (call.method === "GET") {return [dirEntry("a.txt", "file")];}

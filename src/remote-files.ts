@@ -315,6 +315,8 @@ export class VertraFileSystemProvider implements vscode.FileSystemProvider {
         );
       case "TARGET_IS_DIRECTORY":
         return vscode.FileSystemError.FileIsADirectory(uri);
+      case "PATH_IS_FILE":
+        return vscode.FileSystemError.FileNotADirectory(uri);
       case "FILE_NOT_FOUND":
       case "FILE_OR_FOLDER_NOT_FOUND":
       case "APP_NOT_FOUND":

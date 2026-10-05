@@ -312,5 +312,6 @@
   "Select the action to request": "Select the action to request",
   "No resources in this workspace for this action.": "No resources in this workspace for this action.",
   "No snapshots available.": "No snapshots available.",
-  "Request sent for approval.": "Request sent for approval."
+  "Request sent for approval.": "Request sent for approval.",
+  "The Free plan is suspended. Choose a paid plan to create applications and databases.": "The Free plan is suspended. Choose a paid plan to create applications and databases."
 }
