@@ -31,7 +31,7 @@ Requires a VS Code-compatible editor at version 1.85 or later.
 
 ### Deploy
 
-**Deploy** sends the linked folder; **Deploy folder...** sends any folder, to a new or existing application.
+**Deploy** sends the linked folder; **Deploy folder...** sends any folder, to a new or existing application. Each deploy can carry a short message, filled in with your last git commit subject, so the version is easy to find in the Rollbacks history.
 
 - Files matched by `.vertraignore` (or `.vertracloudignore`) are left out, along with version control, dependency and build folders by default.
 - Uploads are capped at 100 MB; the extension stops before uploading anything larger.
@@ -58,6 +58,10 @@ For applications with web publishing: publish and unpublish, open the site, choo
 ### Databases
 
 Create databases, start and stop them, edit their name and memory, view metrics, download the TLS certificate and reset the password. The new password is shown once, right after the reset — it is never stored or shown again. Deleting a database asks you to type its name.
+
+### Rollbacks
+
+**Rollbacks...** on an application lists its versions with status, author and date. Pick one to roll back to it (with the option to bring back that version's environment variables, after showing which names would change), view the log of a version that crashed, or copy its ID. Rolling back needs the Pro plan or above.
 
 ### Snapshots
 

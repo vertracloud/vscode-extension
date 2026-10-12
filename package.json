@@ -198,6 +198,12 @@
         "icon": "$(history)"
       },
       {
+        "command": "vertraCloud.app.rollbacks",
+        "title": "%cmd.vertraCloud.app.rollbacks%",
+        "category": "Vertra Cloud",
+        "icon": "$(discard)"
+      },
+      {
         "command": "vertraCloud.app.openRemoteFiles",
         "title": "%cmd.vertraCloud.app.openRemoteFiles%",
         "category": "Vertra Cloud",
@@ -773,6 +779,11 @@
         },
         {
           "command": "vertraCloud.app.manageSnapshots",
+          "when": "viewItem =~ /^app:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.rollbacks",
           "when": "viewItem =~ /^app:/",
           "group": "4_manage"
         },

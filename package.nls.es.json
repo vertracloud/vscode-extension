@@ -75,5 +75,6 @@
   "cmd.vertraCloud.project.viewLogs": "Ver logs (heredado)",
   "cmd.vertraCloud.project.startApp": "Iniciar (heredado)",
   "cmd.vertraCloud.project.stopApp": "Detener (heredado)",
-  "cmd.vertraCloud.project.restartApp": "Reiniciar (heredado)"
+  "cmd.vertraCloud.project.restartApp": "Reiniciar (heredado)",
+  "cmd.vertraCloud.app.rollbacks": "Rollbacks…"
 }

@@ -75,5 +75,6 @@
   "cmd.vertraCloud.project.viewLogs": "View logs (legacy)",
   "cmd.vertraCloud.project.startApp": "Start (legacy)",
   "cmd.vertraCloud.project.stopApp": "Stop (legacy)",
-  "cmd.vertraCloud.project.restartApp": "Restart (legacy)"
+  "cmd.vertraCloud.project.restartApp": "Restart (legacy)",
+  "cmd.vertraCloud.app.rollbacks": "Rollbacks…"
 }

@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import * as vscode from "vscode";
 import { createAppFromFolder, deployToApp, type CreateAppFields, type CreateAppResult } from "../deploy/deploy";
 import { readConfig, writeConfigKey } from "../project/config";
@@ -9,6 +10,24 @@ import { downloadApp } from "../api/snapshots";
 import { extractInto } from "../deploy/pull";
 
 const DEFAULT_MEMORY = 512;
+
+/** Assunto do último commit git da pasta, para pré-preencher a mensagem do deploy. Sem git ou sem repo = vazio. */
+function lastGitSubject(cwd: string): Promise<string> {
+  return new Promise((resolve) => {
+    execFile("git", ["log", "-1", "--format=%s"], { cwd, timeout: 3000 }, (err, stdout) => resolve(err ? "" : stdout.trim()));
+  });
+}
+
+/** Mensagem do deploy no histórico (aba Rollbacks). Vazio = sem mensagem; Esc (undefined) cancela o deploy. */
+async function askMessage(root: string): Promise<string | undefined> {
+  return vscode.window.showInputBox({
+    title: vscode.l10n.t("Deploy message"),
+    prompt: vscode.l10n.t("Shown in the Rollbacks history. Leave it empty to deploy without one."),
+    value: await lastGitSubject(root),
+    ignoreFocusOut: true,
+    validateInput: (value: string) => (value.length > 500 ? vscode.l10n.t("Up to 500 characters.") : undefined),
+  });
+}
 
 /** Asks for the values `POST /v1/apps` requires and writes them to `vertracloud.config`. */
 export async function createConfigInteractive(folderUri: vscode.Uri): Promise<Record<string, string> | undefined> {
@@ -170,6 +189,8 @@ export function registerProjectCommands(deps: CommandDeps): void {
 
     const restart = await askRestart();
     if (restart === undefined) {return;}
+    const message = await askMessage(target.folder.uri.fsPath);
+    if (message === undefined) {return;}
 
     const entry = deps.store.apps.find((e) => e.app.id === target.appId);
     const appName = entry?.app.name ?? target.folder.name;
@@ -179,6 +200,7 @@ export function registerProjectCommands(deps: CommandDeps): void {
         appName,
         root: target.folder.uri.fsPath,
         restart,
+        message,
       });
     } catch (err) {
       deps.showError(err);
@@ -204,10 +226,12 @@ export function registerProjectCommands(deps: CommandDeps): void {
     if (configId) {
       const restart = await askRestart();
       if (restart === undefined) {return;}
+      const message = await askMessage(folderUri.fsPath);
+      if (message === undefined) {return;}
       const entry = deps.store.apps.find((e) => e.app.id === configId);
       const appName = entry?.app.name ?? configId;
       try {
-        await deployToApp(deps.client, { appId: configId, appName, root: folderUri.fsPath, restart });
+        await deployToApp(deps.client, { appId: configId, appName, root: folderUri.fsPath, restart, message });
       } catch (err) {
         deps.showError(err);
         return;

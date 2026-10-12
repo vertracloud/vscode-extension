@@ -15,8 +15,13 @@ import type { ProjectLinks } from "../src/project/link";
 
 const FOLDER = { uri: Uri.file("/tmp/project"), name: "project", index: 0 };
 
+let inputAnswer: string | undefined = "";
+
 function setup(deployImpl: typeof deployImplementation, onRequest: (path: string) => unknown = () => ({})) {
   registeredCommands.clear();
+  // A mensagem do deploy é uma caixa de texto: vazio = sem mensagem, undefined (Esc) = cancela.
+  const originalInputBox = vscode.window.showInputBox;
+  (vscode.window as { showInputBox: unknown }).showInputBox = () => Promise.resolve(inputAnswer);
   const polls: Array<{ id: string; expect: string }> = [];
   deployImplementation = deployImpl;
 
@@ -59,6 +64,8 @@ function setup(deployImpl: typeof deployImplementation, onRequest: (path: string
     errors,
     restore: () => {
       deployImplementation = async () => ({});
+      inputAnswer = "";
+      (vscode.window as { showInputBox: unknown }).showInputBox = originalInputBox;
     },
   };
 }
@@ -83,6 +90,38 @@ test("deploy uses the linked app id and the chosen restart flag", async () => {
   harness.restore();
   assert.deepEqual(seen, [{ appId: "app-1", restart: true, root: FOLDER.uri.fsPath }]);
   assert.deepEqual(harness.polls, [{ id: "app-1", expect: "up" }]);
+});
+
+test("deploy sends the message typed in the box", async () => {
+  const seen: Array<string | undefined> = [];
+  inputAnswer = "fix: boot";
+  const harness = setup(async (_client, opts) => {
+    seen.push(opts.message);
+    return {};
+  });
+  const restoreQuickPick = answerQuickPick("Yes");
+
+  await vscode.commands.executeCommand("vertraCloud.project.deploy");
+
+  restoreQuickPick();
+  harness.restore();
+  assert.deepEqual(seen, ["fix: boot"]);
+});
+
+test("Esc on the message box cancels the deploy", async () => {
+  let called = false;
+  inputAnswer = undefined;
+  const harness = setup(async () => {
+    called = true;
+    return {};
+  });
+  const restoreQuickPick = answerQuickPick("Yes");
+
+  await vscode.commands.executeCommand("vertraCloud.project.deploy");
+
+  restoreQuickPick();
+  harness.restore();
+  assert.equal(called, false);
 });
 
 test("deploy answers No without restarting", async () => {

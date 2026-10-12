@@ -86,6 +86,8 @@ export interface DeployToAppOptions {
   root: string;
   restart: boolean;
   workspaceId?: string;
+  /** Mensagem do commit no histórico de versões (aba Rollbacks). Vazia = sem mensagem. */
+  message?: string;
 }
 
 export async function deployToApp(client: UploadClient, opts: DeployToAppOptions): Promise<unknown> {
@@ -106,7 +108,7 @@ export async function deployToApp(client: UploadClient, opts: DeployToAppOptions
           client,
           `/v1/apps/${opts.appId}/files/upload`,
           { restart: opts.restart ? "true" : "false", workspace_id: opts.workspaceId },
-          {},
+          { message: opts.message?.trim() || undefined },
           zip,
           token,
         );

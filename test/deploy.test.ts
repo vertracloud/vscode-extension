@@ -74,6 +74,18 @@ describe("deployToApp", () => {
     assert.deepEqual(result, { ok: true });
   });
 
+  it("sends the commit message as a form field, trimmed, and omits it when empty", async () => {
+    const forms: FormData[] = [];
+    const client = fakeClient((_p, opts) => {
+      forms.push((opts as { form: FormData }).form);
+      return { ok: true };
+    });
+    await deployToApp(client, { appId: "app-1", appName: "App", root, restart: false, message: "  fix: boot  " });
+    await deployToApp(client, { appId: "app-1", appName: "App", root, restart: false, message: "   " });
+    assert.equal(forms[0].get("message"), "fix: boot");
+    assert.equal(forms[1].get("message"), null);
+  });
+
   it("cleans up the temp zip after a successful upload", async () => {
     const client = fakeClient(() => ({ ok: true }));
     const created = await trackTempDirs(async () => {
