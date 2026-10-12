@@ -12,6 +12,7 @@ function fakeUser(overrides?: Partial<APIUserInfoResponse>): APIUserInfoResponse
     plan_id: 1,
     language: "pt-br",
     workspace_invites_enabled: true,
+    marketing_emails_enabled: true,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
     plan: { id: 1, name: "Free", expires_at: null, duration: 0, memory: { limit: 512, used: 128 } },
