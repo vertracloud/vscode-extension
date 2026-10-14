@@ -67,6 +67,16 @@ Create databases, start and stop them, edit their name and memory, view metrics,
 
 **Manage snapshots** lists, creates, downloads and restores snapshots of applications and databases. Restoring always asks for confirmation.
 
+### Blob Storage
+
+The **Blob** view shows your Blob Storage as folders and files, with the used and total storage at the top.
+
+- **Upload**: right-click files or folders in the Explorer and choose **Upload to Blob Storage**, drag them onto the Blob view, or use the upload button of the view. Progress is cancellable; paths that already exist are skipped, never overwritten.
+- **Share**: copy the public URL, copy a Markdown image link (`![name](url)`), or create a temporary link valid for 10 minutes, 1 hour or 24 hours. A temporary link can't be revoked before it expires.
+- **Manage**: preview images and text inside the editor (other files are downloaded), rename or move, switch between public and private, and delete a file or a whole folder. Deleting always asks for confirmation.
+
+The setting `vertraCloud.blob.baseUrl` changes the Blob API address and rarely needs touching. Blob Storage is available on the plans that include it; see [docs.vertracloud.app](https://docs.vertracloud.app).
+
 ### Workspaces
 
 Create and edit workspaces, link applications and databases to them, and delete a workspace you own.
@@ -96,6 +106,7 @@ Grant only the scopes you use when creating the key.
 | Manage databases | `databases:write` (+ `databases:credentials` for certificate and password, `databases:delete` to delete) |
 | Snapshots | `snapshots:read`, `snapshots:write` |
 | Folders and favorites | `account:write` |
+| Blob Storage | `blob:read` (browse, preview, links), `blob:write` (upload, rename, visibility, delete) |
 | Workspaces | `workspaces:read`, `workspaces:write` (+ `workspaces:invites` for invites, `workspaces:delete` to delete a workspace) |
 
 A missing scope shows up as an error naming the scope, with a shortcut to the key management page. The full list is in the [API reference](https://docs.vertracloud.app/api-reference/introduction).

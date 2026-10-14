@@ -39,6 +39,7 @@ import { registerOrganizationCommands } from "./commands/organization";
 import { registerNetworkCommands } from "./commands/network";
 import { registerAppsExtraCommands } from "./commands/apps-extra";
 import { registerReleasesCommands } from "./commands/releases";
+import { registerBlob } from "./blob/commands";
 
 interface Lifecycle {
   store: Store;
@@ -122,6 +123,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<{
   registerNetworkCommands(deps);
   registerAppsExtraCommands(deps);
   registerReleasesCommands(deps);
+  registerBlob(deps);
 
   context.subscriptions.push(
     session.onDidChange(() => {

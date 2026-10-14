@@ -76,5 +76,16 @@
   "cmd.vertraCloud.project.startApp": "Iniciar (heredado)",
   "cmd.vertraCloud.project.stopApp": "Detener (heredado)",
   "cmd.vertraCloud.project.restartApp": "Reiniciar (heredado)",
-  "cmd.vertraCloud.app.rollbacks": "Rollbacks…"
+  "cmd.vertraCloud.app.rollbacks": "Rollbacks…",
+  "view.blob": "Blob",
+  "cmd.vertraCloud.blob.refresh": "Blob: Actualizar",
+  "cmd.vertraCloud.blob.upload": "Subir a Blob Storage",
+  "cmd.vertraCloud.blob.copyUrl": "Blob: Copiar URL pública",
+  "cmd.vertraCloud.blob.copyMarkdown": "Blob: Copiar enlace Markdown de la imagen",
+  "cmd.vertraCloud.blob.tempLink": "Blob: Crear enlace temporal",
+  "cmd.vertraCloud.blob.preview": "Blob: Vista previa",
+  "cmd.vertraCloud.blob.rename": "Blob: Renombrar o mover",
+  "cmd.vertraCloud.blob.toggleVisibility": "Blob: Alternar público/privado",
+  "cmd.vertraCloud.blob.delete": "Blob: Eliminar",
+  "config.blob.baseUrl": "URL base de la API de Blob Storage."
 }

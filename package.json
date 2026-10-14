@@ -49,6 +49,11 @@
           "id": "vertraCloudAccount",
           "name": "%view.account%",
           "when": "vertraCloud.connected"
+        },
+        {
+          "id": "vertraCloudBlob",
+          "name": "%view.blob%",
+          "when": "vertraCloud.connected"
         }
       ]
     },
@@ -460,6 +465,60 @@
         "command": "vertraCloud.project.restartApp",
         "title": "%cmd.vertraCloud.project.restartApp%",
         "category": "Vertra Cloud"
+      },
+      {
+        "command": "vertraCloud.blob.refresh",
+        "title": "%cmd.vertraCloud.blob.refresh%",
+        "category": "Vertra Cloud",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vertraCloud.blob.upload",
+        "title": "%cmd.vertraCloud.blob.upload%",
+        "category": "Vertra Cloud",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "vertraCloud.blob.copyUrl",
+        "title": "%cmd.vertraCloud.blob.copyUrl%",
+        "category": "Vertra Cloud",
+        "icon": "$(link)"
+      },
+      {
+        "command": "vertraCloud.blob.copyMarkdown",
+        "title": "%cmd.vertraCloud.blob.copyMarkdown%",
+        "category": "Vertra Cloud",
+        "icon": "$(markdown)"
+      },
+      {
+        "command": "vertraCloud.blob.tempLink",
+        "title": "%cmd.vertraCloud.blob.tempLink%",
+        "category": "Vertra Cloud",
+        "icon": "$(clock)"
+      },
+      {
+        "command": "vertraCloud.blob.preview",
+        "title": "%cmd.vertraCloud.blob.preview%",
+        "category": "Vertra Cloud",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "vertraCloud.blob.rename",
+        "title": "%cmd.vertraCloud.blob.rename%",
+        "category": "Vertra Cloud",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "vertraCloud.blob.toggleVisibility",
+        "title": "%cmd.vertraCloud.blob.toggleVisibility%",
+        "category": "Vertra Cloud",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "vertraCloud.blob.delete",
+        "title": "%cmd.vertraCloud.blob.delete%",
+        "category": "Vertra Cloud",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -647,6 +706,34 @@
         {
           "command": "vertraCloud.project.restartApp",
           "when": "false"
+        },
+        {
+          "command": "vertraCloud.blob.copyUrl",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.blob.copyMarkdown",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.blob.tempLink",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.blob.preview",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.blob.rename",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.blob.toggleVisibility",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.blob.delete",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -708,6 +795,16 @@
         {
           "command": "vertraCloud.workspace.openInvite",
           "when": "view == vertraCloudWorkspaces && vertraCloud.connected",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vertraCloud.blob.upload",
+          "when": "view == vertraCloudBlob",
+          "group": "navigation@0"
+        },
+        {
+          "command": "vertraCloud.blob.refresh",
+          "when": "view == vertraCloudBlob",
           "group": "navigation@1"
         }
       ],
@@ -1011,6 +1108,58 @@
           "command": "vertraCloud.account.showServiceStatus",
           "when": "viewItem == account",
           "group": "3_inspect"
+        },
+        {
+          "command": "vertraCloud.blob.upload",
+          "when": "viewItem == blob:folder",
+          "group": "1_upload"
+        },
+        {
+          "command": "vertraCloud.blob.delete",
+          "when": "viewItem == blob:folder",
+          "group": "9_danger"
+        },
+        {
+          "command": "vertraCloud.blob.preview",
+          "when": "viewItem =~ /^blob:object:/",
+          "group": "1_open"
+        },
+        {
+          "command": "vertraCloud.blob.copyUrl",
+          "when": "viewItem == blob:object:public",
+          "group": "2_share@1"
+        },
+        {
+          "command": "vertraCloud.blob.copyMarkdown",
+          "when": "viewItem == blob:object:public",
+          "group": "2_share@2"
+        },
+        {
+          "command": "vertraCloud.blob.tempLink",
+          "when": "viewItem =~ /^blob:object:/",
+          "group": "2_share@3"
+        },
+        {
+          "command": "vertraCloud.blob.rename",
+          "when": "viewItem =~ /^blob:object:/",
+          "group": "3_edit@1"
+        },
+        {
+          "command": "vertraCloud.blob.toggleVisibility",
+          "when": "viewItem =~ /^blob:object:/",
+          "group": "3_edit@2"
+        },
+        {
+          "command": "vertraCloud.blob.delete",
+          "when": "viewItem =~ /^blob:object:/",
+          "group": "9_danger"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "vertraCloud.blob.upload",
+          "when": "vertraCloud.connected",
+          "group": "vertraCloud@1"
         }
       ]
     },
@@ -1054,7 +1203,18 @@
         "scopeName": "source.vertracloud-config",
         "path": "./syntaxes/vertracloud-config.tmLanguage.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Vertra Cloud",
+      "properties": {
+        "vertraCloud.blob.baseUrl": {
+          "type": "string",
+          "scope": "machine",
+          "default": "https://blob.vertracloud.app/v1",
+          "description": "%config.blob.baseUrl%"
+        }
+      }
+    }
   },
   "publisher": "VertraCloud",
   "repository": {
@@ -1108,7 +1268,8 @@
   "activationEvents": [
     "workspaceContains:**/vertracloud.config",
     "onLanguage:vertracloud-config",
-    "onFileSystem:vertra"
+    "onFileSystem:vertra",
+    "onFileSystem:vertra-blob"
   ],
   "galleryBanner": {
     "color": "#0f0f10",
