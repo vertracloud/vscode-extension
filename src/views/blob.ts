@@ -10,7 +10,7 @@ export type BlobNode =
   | { kind: "object"; object: APIBlobObject };
 
 const PAGE_LIMIT = 1000;
-// ponytail: stops after 20 pages (20k entries per folder); add a "load more" node if anyone hits it.
+// Stops after 20 pages (20k entries per folder).
 const MAX_PAGES = 20;
 
 export function folderName(prefix: string): string {

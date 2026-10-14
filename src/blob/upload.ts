@@ -53,7 +53,7 @@ export async function uploadEntries(
     if (signal.aborted) {break;}
     onFile?.(entry, done++);
     try {
-      // ponytail: reads the whole file into memory; switch to a stream when large uploads from the editor matter.
+      // Reads the whole file into memory; large uploads from the editor would need a stream.
       const bytes = await vscode.workspace.fs.readFile(entry.uri);
       await blob.put(`${prefix}${entry.rel}`, bytes, { signal });
       summary.uploaded++;
