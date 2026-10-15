@@ -45,8 +45,10 @@ export class Uri {
   static parse(value: string): Uri {
     return new Uri("parsed", value);
   }
+  /** Like VS Code: `path` always uses `/`, and a Windows drive becomes `/c:/...` (`fsPath` turns it back). */
   static file(value: string): Uri {
-    return new Uri("file", value);
+    const p = value.replace(/\\/g, "/");
+    return new Uri("file", /^[a-zA-Z]:/.test(p) ? `/${p}` : p);
   }
   static from(parts: { scheme: string; authority?: string; path?: string }): Uri {
     return new Uri(parts.scheme, parts.path ?? "", parts.authority ?? "");
@@ -59,7 +61,7 @@ export class Uri {
     return new Uri(this.scheme, parts.path ?? this.path, parts.authority ?? this.authority);
   }
   get fsPath(): string {
-    return this.path;
+    return /^\/[a-zA-Z]:/.test(this.path) ? this.path.slice(1).replace(/\//g, "\\") : this.path;
   }
   toString(): string {
     return this.authority ? `${this.scheme}://${this.authority}${this.path}` : this.path;
