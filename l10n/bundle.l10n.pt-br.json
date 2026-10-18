@@ -1,5 +1,10 @@
 {
   "Installing": "Instalando",
+  "The application is still building. Try again when it finishes.": "O aplicativo ainda está sendo construído. Tente de novo quando terminar.",
+  "Building": "Construindo",
+  "Created {0}, but the build failed. Check the application logs.": "{0} criado, mas o build falhou. Confira os logs da aplicação.",
+  "Created {0}. It is still building in the background.": "{0} criado. Ainda está sendo construído em segundo plano.",
+  "Dependencies missing from your project: {0}": "Dependências ausentes no seu projeto: {0}",
   "Online": "Online",
   "Offline": "Offline",
   "Service issue": "Problema no serviço",
@@ -383,5 +388,12 @@
   "Anyone with the link will be able to open \"{0}\".": "Qualquer pessoa com o link poderá abrir \"{0}\".",
   "Delete \"{0}\"? This can't be undone.": "Apagar \"{0}\"? Isso não pode ser desfeito.",
   "Delete everything under \"{0}\"? This can't be undone.": "Apagar tudo em \"{0}\"? Isso não pode ser desfeito.",
-  "The Blob base URL must be an https address on vertracloud.app. Your token was not sent.": "O endereço base do Blob precisa ser https em vertracloud.app. Seu token não foi enviado."
+  "The Blob base URL must be an https address on vertracloud.app. Your token was not sent.": "O endereço base do Blob precisa ser https em vertracloud.app. Seu token não foi enviado.",
+  "Not enough memory to install dependencies: raise the app memory.": "Memória insuficiente para instalar as dependências: aumente a memória do app.",
+  "The build failed: read the logs and fix the project.": "O build falhou: leia os logs e corrija o projeto.",
+  "Installing dependencies failed: read the logs and fix the project.": "A instalação das dependências falhou: leia os logs e corrija o projeto.",
+  "The build took too long: make it shorter.": "O build demorou demais: reduza o tempo dele.",
+  "The install took too long: make it shorter.": "A instalação demorou demais: reduza o tempo dela.",
+  "The build was interrupted: try again.": "O build foi interrompido: tente de novo.",
+  "Network protection blocked traffic during the build.": "A proteção de rede bloqueou o tráfego durante o build."
 }

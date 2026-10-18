@@ -139,3 +139,22 @@ describe("createAppFromFolder", () => {
     assert.deepEqual(result, { id: "1" });
   });
 });
+
+describe("createAppFromFolder build wait", () => {
+  it("polls GET /v1/apps/:id until the app leaves building and returns missing_dependencies", async () => {
+    const paths: string[] = [];
+    const client = fakeClient((p) => {
+      paths.push(p);
+      if (p === "/v1/apps") {return { id: "1", status: "building" };}
+      return paths.length < 3 ? { id: "1", status: "building" } : { id: "1", status: "up", missing_dependencies: ["left-pad"] };
+    });
+    const result = await createAppFromFolder(client, {
+      root,
+      fields: { name: "app", memory: 100, main: "index.js", version: "recommended" },
+      pollIntervalMs: 1,
+    });
+    assert.deepEqual(paths, ["/v1/apps", "/v1/apps/1", "/v1/apps/1"]);
+    assert.equal(result.status, "up");
+    assert.deepEqual(result.missing_dependencies, ["left-pad"]);
+  });
+});

@@ -1,5 +1,10 @@
 {
   "Installing": "Instalando",
+  "The application is still building. Try again when it finishes.": "La aplicación aún se está construyendo. Inténtalo de nuevo cuando termine.",
+  "Building": "Construyendo",
+  "Created {0}, but the build failed. Check the application logs.": "{0} creado, pero el build falló. Revisa los logs de la aplicación.",
+  "Created {0}. It is still building in the background.": "{0} creado. Sigue construyéndose en segundo plano.",
+  "Dependencies missing from your project: {0}": "Dependencias que faltan en tu proyecto: {0}",
   "Online": "En línea",
   "Offline": "Sin conexión",
   "Service issue": "Problema en el servicio",
@@ -383,5 +388,12 @@
   "Anyone with the link will be able to open \"{0}\".": "Cualquiera con el enlace podrá abrir \"{0}\".",
   "Delete \"{0}\"? This can't be undone.": "¿Eliminar \"{0}\"? No se puede deshacer.",
   "Delete everything under \"{0}\"? This can't be undone.": "¿Eliminar todo en \"{0}\"? No se puede deshacer.",
-  "The Blob base URL must be an https address on vertracloud.app. Your token was not sent.": "La URL base de Blob debe ser https en vertracloud.app. Tu token no fue enviado."
+  "The Blob base URL must be an https address on vertracloud.app. Your token was not sent.": "La URL base de Blob debe ser https en vertracloud.app. Tu token no fue enviado.",
+  "Not enough memory to install dependencies: raise the app memory.": "Memoria insuficiente para instalar las dependencias: aumenta la memoria de la app.",
+  "The build failed: read the logs and fix the project.": "El build falló: lee los logs y corrige el proyecto.",
+  "Installing dependencies failed: read the logs and fix the project.": "La instalación de dependencias falló: lee los logs y corrige el proyecto.",
+  "The build took too long: make it shorter.": "El build tardó demasiado: redúcelo.",
+  "The install took too long: make it shorter.": "La instalación tardó demasiado: redúcela.",
+  "The build was interrupted: try again.": "El build fue interrumpido: inténtalo de nuevo.",
+  "Network protection blocked traffic during the build.": "La protección de red bloqueó el tráfico durante el build."
 }

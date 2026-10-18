@@ -31,7 +31,9 @@ export class StatusBar {
     if (link) {
       const entry = this.store.apps.find((e) => e.app.id === link.appId);
       const label = entry
-        ? entry.status?.installing
+        ? entry.app.status === "building"
+          ? vscode.l10n.t("Building")
+          : entry.status?.installing
           ? vscode.l10n.t("Installing")
           : entry.status
             ? entry.status.running

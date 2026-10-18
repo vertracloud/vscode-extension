@@ -14,8 +14,9 @@ type Node =
   | { kind: "root"; link: ProjectLink }
   | { kind: "info"; link: ProjectLink; field: InfoField };
 
-function effectiveStatus(entry: AppEntry | undefined): "up" | "down" | "installing" {
+function effectiveStatus(entry: AppEntry | undefined): "up" | "down" | "installing" | "building" {
   if (!entry) {return "down";}
+  if (entry.app.status === "building") {return "building";}
   if (entry.status?.installing) {return "installing";}
   if (entry.status) {return entry.status.running ? "up" : "down";}
   return entry.app.status === "up" ? "up" : "down";
@@ -78,7 +79,7 @@ export class ProjectProvider implements vscode.TreeDataProvider<Node> {
       const status = effectiveStatus(entry);
       item.description = statusLabel(status);
       item.iconPath =
-        status === "installing"
+        status === "installing" || status === "building"
           ? new vscode.ThemeIcon("loading~spin")
           : new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor(status === "up" ? "charts.green" : "charts.red"));
     } else {

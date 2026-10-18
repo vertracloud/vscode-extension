@@ -1,5 +1,10 @@
 {
   "Installing": "Installing",
+  "The application is still building. Try again when it finishes.": "The application is still building. Try again when it finishes.",
+  "Building": "Building",
+  "Created {0}, but the build failed. Check the application logs.": "Created {0}, but the build failed. Check the application logs.",
+  "Created {0}. It is still building in the background.": "Created {0}. It is still building in the background.",
+  "Dependencies missing from your project: {0}": "Dependencies missing from your project: {0}",
   "Online": "Online",
   "Offline": "Offline",
   "Service issue": "Service issue",
@@ -383,5 +388,12 @@
   "Anyone with the link will be able to open \"{0}\".": "Anyone with the link will be able to open \"{0}\".",
   "Delete \"{0}\"? This can't be undone.": "Delete \"{0}\"? This can't be undone.",
   "Delete everything under \"{0}\"? This can't be undone.": "Delete everything under \"{0}\"? This can't be undone.",
-  "The Blob base URL must be an https address on vertracloud.app. Your token was not sent.": "The Blob base URL must be an https address on vertracloud.app. Your token was not sent."
+  "The Blob base URL must be an https address on vertracloud.app. Your token was not sent.": "The Blob base URL must be an https address on vertracloud.app. Your token was not sent.",
+  "Not enough memory to install dependencies: raise the app memory.": "Not enough memory to install dependencies: raise the app memory.",
+  "The build failed: read the logs and fix the project.": "The build failed: read the logs and fix the project.",
+  "Installing dependencies failed: read the logs and fix the project.": "Installing dependencies failed: read the logs and fix the project.",
+  "The build took too long: make it shorter.": "The build took too long: make it shorter.",
+  "The install took too long: make it shorter.": "The install took too long: make it shorter.",
+  "The build was interrupted: try again.": "The build was interrupted: try again.",
+  "Network protection blocked traffic during the build.": "Network protection blocked traffic during the build."
 }

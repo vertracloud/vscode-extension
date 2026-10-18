@@ -94,6 +94,8 @@ export function describeError(err: ApiErrorLike): string {
       return vscode.l10n.t("Your account has been suspended.");
     case "APP_BANNED":
       return vscode.l10n.t("This application has been suspended.");
+    case "APP_BUILDING":
+      return vscode.l10n.t("The application is still building. Try again when it finishes.");
     case "APP_SHIELD_COOLDOWN":
       return vscode.l10n.t("This application is in cooldown after a network incident.");
     default:
@@ -101,14 +103,38 @@ export function describeError(err: ApiErrorLike): string {
   }
 }
 
-export function statusLabel(status: "up" | "down" | "installing"): string {
+export function statusLabel(status: "up" | "down" | "installing" | "building"): string {
   switch (status) {
     case "up":
       return vscode.l10n.t("Online");
     case "installing":
       return vscode.l10n.t("Installing");
+    case "building":
+      return vscode.l10n.t("Building");
     default:
       return vscode.l10n.t("Offline");
+  }
+}
+
+/** Orientação curta para o código `last_build_error` de um app; `undefined` para código desconhecido. */
+export function buildErrorHint(code: string | null | undefined): string | undefined {
+  switch (code) {
+    case "INSTALL_OUT_OF_MEMORY":
+      return vscode.l10n.t("Not enough memory to install dependencies: raise the app memory.");
+    case "BUILD_FAILED":
+      return vscode.l10n.t("The build failed: read the logs and fix the project.");
+    case "INSTALL_FAILED":
+      return vscode.l10n.t("Installing dependencies failed: read the logs and fix the project.");
+    case "BUILD_TIMEOUT":
+      return vscode.l10n.t("The build took too long: make it shorter.");
+    case "INSTALL_TIMEOUT":
+      return vscode.l10n.t("The install took too long: make it shorter.");
+    case "BUILD_INTERRUPTED":
+      return vscode.l10n.t("The build was interrupted: try again.");
+    case "INSTALL_SHIELD_BLOCKED":
+      return vscode.l10n.t("Network protection blocked traffic during the build.");
+    default:
+      return undefined;
   }
 }
 

@@ -4,6 +4,7 @@ import { createAppFromFolder, deployToApp, type CreateAppFields, type CreateAppR
 import { readConfig, writeConfigKey } from "../project/config";
 import { runProjectChecks, showChecks } from "../project/checks";
 import { link, pickFolder, unlink } from "../project/link";
+import { buildErrorHint } from "../l10n";
 import type { CommandDeps } from "./deps";
 import { register } from "./index";
 import { downloadApp } from "../api/snapshots";
@@ -272,7 +273,25 @@ export function registerProjectCommands(deps: CommandDeps): void {
     }
 
     await writeConfigKey(folderUri, "ID", created.id);
-    void vscode.window.showInformationMessage(vscode.l10n.t("Created {0}.", created.name));
+    if (created.status === "down") {
+      const hint = buildErrorHint(created.last_build_error);
+      void vscode.window.showErrorMessage(
+        vscode.l10n.t("Created {0}, but the build failed. Check the application logs.", created.name) +
+          (hint ? ` ${hint}` : ""),
+      );
+    } else {
+      void vscode.window.showInformationMessage(
+        created.status === "building"
+          ? vscode.l10n.t("Created {0}. It is still building in the background.", created.name)
+          : vscode.l10n.t("Created {0}.", created.name),
+      );
+    }
+    const missing = created.missing_dependencies ?? [];
+    if (missing.length > 0) {
+      void vscode.window.showWarningMessage(
+        vscode.l10n.t("Dependencies missing from your project: {0}", missing.join(", ")),
+      );
+    }
     await deps.refresh();
   });
 

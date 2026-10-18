@@ -10,14 +10,15 @@ export function folderIcon(color: WorkspaceFolderColor | undefined): vscode.Them
   return new vscode.ThemeIcon("folder", color && color !== "neutral" ? new vscode.ThemeColor(`charts.${color}`) : undefined);
 }
 
-export function appEffectiveStatus(entry: AppEntry): "up" | "down" | "installing" {
+export function appEffectiveStatus(entry: AppEntry): "up" | "down" | "installing" | "building" {
+  if (entry.app.status === "building") {return "building";}
   if (entry.status?.installing) {return "installing";}
   if (entry.status) {return entry.status.running ? "up" : "down";}
   return entry.app.status === "up" ? "up" : "down";
 }
 
-function appIcon(status: "up" | "down" | "installing"): vscode.ThemeIcon {
-  if (status === "installing") {return new vscode.ThemeIcon("loading~spin");}
+function appIcon(status: "up" | "down" | "installing" | "building"): vscode.ThemeIcon {
+  if (status === "installing" || status === "building") {return new vscode.ThemeIcon("loading~spin");}
   if (status === "up") {return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.green"));}
   return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.red"));
 }
@@ -38,7 +39,7 @@ export function appTreeItem(entry: AppEntry): vscode.TreeItem {
   const status = appEffectiveStatus(entry);
   const ramLabel = appRamLabel(entry);
   const item = new vscode.TreeItem(entry.app.name, vscode.TreeItemCollapsibleState.Collapsed);
-  item.description = status === "up" ? ramLabel : status === "installing" ? `${statusLabel(status)} · ${ramLabel}` : statusLabel(status);
+  item.description = status === "up" ? ramLabel : status === "installing" || status === "building" ? `${statusLabel(status)} · ${ramLabel}` : statusLabel(status);
   item.iconPath = appIcon(status);
   item.contextValue = appContextValue(entry);
   const tooltip = new vscode.MarkdownString();

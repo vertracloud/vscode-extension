@@ -55,7 +55,8 @@ export function workspaceIdOf(arg: unknown): string | undefined {
   return undefined;
 }
 
-function appStatus(entry: AppEntry): "up" | "down" | "installing" {
+function appStatus(entry: AppEntry): "up" | "down" | "installing" | "building" {
+  if (entry.app.status === "building") {return "building";}
   if (entry.status?.installing) {return "installing";}
   if (entry.status) {return entry.status.running ? "up" : "down";}
   return entry.app.status === "up" ? "up" : "down";

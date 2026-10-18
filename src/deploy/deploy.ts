@@ -131,14 +131,36 @@ export interface CreateAppFields {
   workspace_id?: string;
 }
 
-export type CreateAppResult = APIApplication & {
-  missing_dependencies?: string[];
-  removed_directories?: string[];
-};
+/** `missing_dependencies` só vem depois do build; o create (202) não traz mais `removed_directories`. */
+export type CreateAppResult = APIApplication;
 
 export interface CreateAppFromFolderOptions {
   root: string;
   fields: CreateAppFields;
+  /** Intervalo do poll de status depois do 202; padrão 2 s. */
+  pollIntervalMs?: number;
+}
+
+const BUILD_WAIT_TIMEOUT_MS = 10 * 60 * 1000;
+
+/**
+ * `POST /v1/apps` responde 202 com o app em `building`. Acompanha `GET /v1/apps/:id` até `up`/`down`
+ * (ou timeout/cancelamento, caso em que devolve o último estado visto: o build segue no servidor).
+ */
+async function waitForBuild(
+  client: UploadClient,
+  app: CreateAppResult,
+  intervalMs: number,
+  token: vscode.CancellationToken,
+  workspaceId?: string,
+): Promise<CreateAppResult> {
+  const deadline = Date.now() + BUILD_WAIT_TIMEOUT_MS;
+  let current = app;
+  while (current.status === "building" && !token.isCancellationRequested && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    current = await client.request<CreateAppResult>(`/v1/apps/${app.id}`, { query: { workspace_id: workspaceId }, token });
+  }
+  return current;
 }
 
 export async function createAppFromFolder(
@@ -158,7 +180,7 @@ export async function createAppFromFolder(
       try {
         if (token.isCancellationRequested) {throw cancelledError();}
         progress.report({ message: vscode.l10n.t("Uploading") });
-        return (await uploadForm(
+        const created = (await uploadForm(
           client,
           "/v1/apps",
           {},
@@ -176,6 +198,8 @@ export async function createAppFromFolder(
           zip,
           token,
         )) as CreateAppResult;
+        progress.report({ message: vscode.l10n.t("Building") });
+        return await waitForBuild(client, created, opts.pollIntervalMs ?? 2000, token, opts.fields.workspace_id);
       } finally {
         await zip.cleanup();
       }
