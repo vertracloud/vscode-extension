@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test, vi } from "vitest";
+import { ApiError } from "../src/api/client";
 import { FakeMemento, EventEmitter } from "./vscode-mock";
 import { Store, type SessionLike, type SessionStateLike, type StoreApi } from "../src/state";
 import type { APIUserInfoResponse, APIApplicationStatusShort, APIDatabaseStatusShort, APIWorkspace, APIStatus, APIWorkspaceResourceOrganization } from "@vertracloud/api-types/v1";
@@ -129,7 +130,7 @@ test("error preserves previous data and sets lastError", async () => {
   let fail = false;
   const api = fakeApi({
     async getMe() {
-      if (fail) {throw { code: "NETWORK_ERROR", message: "boom" };}
+      if (fail) {throw new ApiError(0, "NETWORK_ERROR", "boom");}
       return fakeUser();
     },
   });
@@ -149,7 +150,7 @@ test("tolerates 403 on workspaces without dropping the rest", async () => {
   session.setState({ status: "connected", user: fakeUser() });
   const api = fakeApi({
     async getWorkspaces() {
-      throw { code: "API_KEY_SCOPE_DENIED" };
+      throw new ApiError(403, "API_KEY_SCOPE_DENIED");
     },
   });
   const store = new Store(session, api, new FakeMemento());
@@ -257,7 +258,7 @@ test("personal and workspace favorites stay isolated", async () => {
 test("remote favorite failure rolls back the optimistic cache", async () => {
   const session = new FakeSession();
   session.setState({ status: "connected", user: fakeUser() });
-  const api = fakeApi({ async setFavorite() {throw { code: "NETWORK_ERROR" };} });
+  const api = fakeApi({ async setFavorite() {throw new ApiError(0, "NETWORK_ERROR");} });
   const store = new Store(session, api, new FakeMemento());
   await store.refresh();
   await assert.rejects(() => store.toggleFavorite("application", "app1"));

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "vitest";
+import { ApiError } from "../src/api/client";
 import * as vscode from "vscode";
 import { registeredCommands } from "./vscode-mock";
 import { inviteTokenFrom, registerWorkspacesCommands } from "../src/commands/workspaces";
@@ -81,7 +82,7 @@ describe("workspaces commands", () => {
     const inputs = ["Team", ""];
     (vscode.window as Record<string, unknown>).showInputBox = async () => inputs.shift();
     const { deps, errors } = fakeDeps(() => {
-      throw { code: "PLAN_RESTRICTED_FEATURE", message: "nope" };
+      throw new ApiError(403, "PLAN_RESTRICTED_FEATURE", "nope");
     });
 
     registerWorkspacesCommands(deps);

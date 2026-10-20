@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
+import { ApiError } from "../src/api/client";
 import * as vscodeMock from "./vscode-mock";
 import { registerAppsExtraCommands } from "../src/commands/apps-extra";
 import type { CommandDeps } from "../src/commands/deps";
@@ -66,7 +67,7 @@ test("showDeploys tolerates a 403 on the webhook lookup and still lists deploys"
   };
   const { deps, calls } = makeDeps((call) => {
     if (call.path.endsWith("/deploys")) {return [deploy];}
-    if (call.path.endsWith("/deploys/webhook")) {throw { code: "ACCESS_DENIED", status: 403 };}
+    if (call.path.endsWith("/deploys/webhook")) {throw new ApiError(403, "ACCESS_DENIED");}
     if (call.path === "/v1/activities") {return [];}
     return undefined;
   });
