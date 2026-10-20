@@ -174,8 +174,8 @@ describe("network commands", () => {
     assert.deepEqual(patch!.opts?.body, { subdomain: "new-name" });
   });
 
-  it("publish reports the first custom domain from the list", async () => {
-    const { deps } = fakeDeps(() => ({ subdomain: "x", domains: ["example.com"], type: 2 }));
+  it("publish reports the platform subdomain", async () => {
+    const { deps } = fakeDeps(() => ({ subdomain: "x.vertracloud.app", domains: [], type: 2 }));
     (vscode.window as Record<string, unknown>).showInputBox = async () => "";
     const shown: string[] = [];
     (vscode.window as Record<string, unknown>).showInformationMessage = async (msg: string) => {
@@ -186,7 +186,7 @@ describe("network commands", () => {
     registerNetworkCommands(deps);
     await runCommand("vertraCloud.app.publish");
 
-    assert.ok(shown.some((m) => m.includes("https://example.com")));
+    assert.ok(shown.some((m) => m.includes("https://x.vertracloud.app")));
   });
 
   it("showDns picks a domain and lists its DNS records", async () => {
@@ -278,6 +278,12 @@ describe("network commands", () => {
     assert.equal(prefix("/api"), undefined);
     assert.ok(prefix("api"));
     assert.ok(prefix("/api/"));
+    assert.equal(prefix("/api/v1"), undefined);
+    assert.equal(prefix("/a.b_c~d-e"), undefined);
+    for (const bad of ["/", "/a b", "/a//b", "/a/./b", "/a/../b", "/..", "/.", "/a?x", "/ação", `/${"a".repeat(128)}`]) {
+      assert.ok(prefix(bad), bad);
+    }
+    assert.equal(prefix(`/${"a".repeat(127)}`), undefined);
   });
 
   it("removeDomain deletes the chosen domain after confirmation", async () => {
@@ -292,6 +298,26 @@ describe("network commands", () => {
     await runCommand("vertraCloud.app.removeDomain");
 
     assert.ok(calls.some((c) => c.path === "/v1/apps/app-1/domains/d2" && c.opts?.method === "DELETE"));
+  });
+
+  it("removeDomain mentions the companion only when the target is not one", async () => {
+    const messages: string[] = [];
+    (vscode.window as Record<string, unknown>).showWarningMessage = async (message: string) => {
+      messages.push(message);
+      return undefined;
+    };
+    const list = [domain("d1", "example.com"), domain("d2", "www.example.com", { companion_of: "d1" })];
+
+    for (const index of [0, 1]) {
+      const { deps } = fakeDeps(() => list);
+      (vscode.window as Record<string, unknown>).showQuickPick = async (items: Array<{ label: string }>) => items[index];
+      registerNetworkCommands(deps);
+      await runCommand("vertraCloud.app.removeDomain");
+    }
+
+    assert.equal(messages.length, 2);
+    assert.match(messages[0], /companion is removed too/);
+    assert.doesNotMatch(messages[1], /companion/);
   });
 
   it("removeDomain does nothing without confirmation", async () => {

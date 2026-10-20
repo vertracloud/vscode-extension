@@ -14,6 +14,8 @@ import { domainLabel } from "../domains";
 import type { CommandDeps } from "./deps";
 
 const SUBDOMAIN_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
+const PATH_PREFIX_PATTERN = /^(\/[A-Za-z0-9._~-]+)+$/;
+const PATH_PREFIX_MAX = 128;
 
 async function confirmSimple(message: string, confirmLabel: string): Promise<boolean> {
   const choice = await vscode.window.showWarningMessage(message, { modal: true }, confirmLabel);
@@ -40,7 +42,7 @@ async function publish(deps: CommandDeps, arg: unknown): Promise<void> {
   try {
     const result = await publishApp(deps.client, entry.app.id, subdomain ? { subdomain } : {});
     await deps.refresh();
-    const host = result.domains[0] ?? result.subdomain;
+    const host = result.subdomain;
     if (host) {
       const url = `https://${host}`;
       const openLabel = vscode.l10n.t("Open");
@@ -116,8 +118,12 @@ function validatePort(value: string): string | undefined {
 
 function validatePathPrefix(value: string): string | undefined {
   if (value.length === 0) {return undefined;}
-  if (!value.startsWith("/") || (value.length > 1 && value.endsWith("/"))) {
-    return vscode.l10n.t("Start with \"/\" and don't end with \"/\".");
+  const invalid =
+    value.length > PATH_PREFIX_MAX ||
+    !PATH_PREFIX_PATTERN.test(value) ||
+    value.split("/").some((segment) => segment === "." || segment === "..");
+  if (invalid) {
+    return vscode.l10n.t("Use segments like \"/api\": letters, numbers, \".\", \"_\", \"~\" and \"-\", up to 128 characters, no \".\" or \"..\" segments.");
   }
   return undefined;
 }
@@ -235,10 +241,10 @@ async function removeDomain(deps: CommandDeps, arg: unknown): Promise<void> {
   const domain = await pickDomain(deps, entry.app.id, vscode.l10n.t("Select a domain to remove"));
   if (!domain) {return;}
 
-  const confirmed = await confirmSimple(
-    vscode.l10n.t("Remove domain \"{0}\"? Its automatic companion is removed too.", domain.hostname),
-    vscode.l10n.t("Remove"),
-  );
+  const message = domain.companion_of
+    ? vscode.l10n.t("Remove domain \"{0}\"?", domain.hostname)
+    : vscode.l10n.t("Remove domain \"{0}\"? Its automatic companion is removed too.", domain.hostname);
+  const confirmed = await confirmSimple(message, vscode.l10n.t("Remove"));
   if (!confirmed) {return;}
 
   try {
