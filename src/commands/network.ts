@@ -1,15 +1,16 @@
 import * as vscode from "vscode";
-import type { APIApplicationDnsRecord } from "@vertracloud/api-types/v1";
+import type { APIApplicationDomain, APIApplicationDomainDnsRecord, RESTPostAPIApplicationDomainBody } from "@vertracloud/api-types/v1";
 import {
-  addAppCustomDomain,
-  getAppCustomDomain,
-  getAppDnsRecords,
+  addAppDomain,
+  getAppDomainDns,
+  listAppDomains,
   publishApp,
   purgeAppCache,
-  removeAppCustomDomain,
+  removeAppDomain,
   setAppSubdomain,
   unpublishApp,
 } from "../api/network";
+import { domainLabel } from "../domains";
 import type { CommandDeps } from "./deps";
 
 const SUBDOMAIN_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
@@ -39,7 +40,7 @@ async function publish(deps: CommandDeps, arg: unknown): Promise<void> {
   try {
     const result = await publishApp(deps.client, entry.app.id, subdomain ? { subdomain } : {});
     await deps.refresh();
-    const host = result.custom_domain ?? result.subdomain;
+    const host = result.domains[0] ?? result.subdomain;
     if (host) {
       const url = `https://${host}`;
       const openLabel = vscode.l10n.t("Open");
@@ -97,17 +98,85 @@ async function setSubdomain(deps: CommandDeps, arg: unknown): Promise<void> {
   }
 }
 
-async function readCustomDomainHost(deps: CommandDeps, appId: string): Promise<string | undefined> {
-  try {
-    const custom = await getAppCustomDomain(deps.client, appId);
-    return custom.domain;
-  } catch {
-    return undefined;
+const PORT_MIN = 1;
+const PORT_MAX = 65535;
+
+function validatePort(value: string): string | undefined {
+  if (value.length === 0) {return undefined;}
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < PORT_MIN || port > PORT_MAX) {
+    return vscode.l10n.t("Use a port between 1 and 65535.");
   }
+  return undefined;
 }
 
-async function addCustomDomain(deps: CommandDeps, appId: string): Promise<void> {
-  const domain = await vscode.window.showInputBox({
+function validatePathPrefix(value: string): string | undefined {
+  if (value.length === 0) {return undefined;}
+  if (!value.startsWith("/") || (value.length > 1 && value.endsWith("/"))) {
+    return vscode.l10n.t("Start with \"/\" and don't end with \"/\".");
+  }
+  return undefined;
+}
+
+async function pickDomain(deps: CommandDeps, appId: string, title: string): Promise<APIApplicationDomain | undefined> {
+  let domains: APIApplicationDomain[];
+  try {
+    domains = await listAppDomains(deps.client, appId);
+  } catch (err) {
+    deps.showError(err);
+    return undefined;
+  }
+  if (domains.length === 0) {
+    void vscode.window.showInformationMessage(vscode.l10n.t("This application has no custom domains."));
+    return undefined;
+  }
+  const picked = await vscode.window.showQuickPick(
+    domains.map((domain) => ({
+      label: domainLabel(domain),
+      description: `${domain.status} · SSL ${domain.ssl_status}`,
+      domain,
+    })),
+    { title },
+  );
+  return picked?.domain;
+}
+
+async function showDomainDns(deps: CommandDeps, appId: string, domain: APIApplicationDomain): Promise<void> {
+  let records: APIApplicationDomainDnsRecord[];
+  try {
+    records = await getAppDomainDns(deps.client, appId, domain.id);
+  } catch (err) {
+    deps.showError(err);
+    return;
+  }
+
+  const picked = await vscode.window.showQuickPick(
+    records.map((record) => ({
+      label: `${record.type} ${record.name}`,
+      description: record.status,
+      detail: record.value,
+      record,
+    })),
+    { title: vscode.l10n.t("DNS — {0}", domain.hostname) },
+  );
+  if (!picked) {return;}
+  await vscode.env.clipboard.writeText(picked.record.value);
+  void vscode.window.showInformationMessage(vscode.l10n.t("Value copied to clipboard."));
+}
+
+async function showDns(deps: CommandDeps, arg: unknown): Promise<void> {
+  const entry = await deps.resolveApp(arg);
+  if (!entry) {return;}
+  const domain = await pickDomain(deps, entry.app.id, vscode.l10n.t("Select a domain"));
+  if (!domain) {return;}
+  await showDomainDns(deps, entry.app.id, domain);
+}
+
+async function addDomain(deps: CommandDeps, arg: unknown): Promise<void> {
+  const entry = await deps.resolveApp(arg);
+  if (!entry) {return;}
+
+  const hostname = await vscode.window.showInputBox({
     prompt: vscode.l10n.t("Custom domain"),
     placeHolder: "app.example.com",
     validateInput: (value) => {
@@ -117,82 +186,63 @@ async function addCustomDomain(deps: CommandDeps, appId: string): Promise<void> 
       return undefined;
     },
   });
-  if (!domain) {return;}
+  if (!hostname) {return;}
+
+  const www = await vscode.window.showQuickPick(
+    [
+      { label: vscode.l10n.t("Yes"), value: true },
+      { label: vscode.l10n.t("No"), value: false },
+    ],
+    { title: vscode.l10n.t("Also create the automatic www / root companion?") },
+  );
+  if (!www) {return;}
+
+  const portText = await vscode.window.showInputBox({
+    prompt: vscode.l10n.t("Port (optional)"),
+    placeHolder: "80",
+    validateInput: validatePort,
+  });
+  if (portText === undefined) {return;}
+
+  const pathPrefix = await vscode.window.showInputBox({
+    prompt: vscode.l10n.t("Path prefix (optional)"),
+    placeHolder: "/api",
+    validateInput: validatePathPrefix,
+  });
+  if (pathPrefix === undefined) {return;}
+
+  const body: RESTPostAPIApplicationDomainBody = { hostname, www: www.value };
+  if (portText) {body.port = Number(portText);}
+  if (pathPrefix) {body.path_prefix = pathPrefix;}
 
   try {
-    await addAppCustomDomain(deps.client, appId, domain);
+    const created = await addAppDomain(deps.client, entry.app.id, body);
     await deps.refresh();
+    const main = created.find((domain) => domain.hostname === hostname) ?? created[0];
+    if (main) {await showDomainDns(deps, entry.app.id, main);}
   } catch (err) {
     deps.showError(err);
   }
 }
 
-async function removeCustomDomain(deps: CommandDeps, appId: string, domain: string): Promise<void> {
+async function removeDomain(deps: CommandDeps, arg: unknown): Promise<void> {
+  const entry = await deps.resolveApp(arg);
+  if (!entry) {return;}
+  const domain = await pickDomain(deps, entry.app.id, vscode.l10n.t("Select a domain to remove"));
+  if (!domain) {return;}
+
   const confirmed = await confirmSimple(
-    vscode.l10n.t("Remove custom domain \"{0}\"?", domain),
+    vscode.l10n.t("Remove domain \"{0}\"? Its automatic companion is removed too.", domain.hostname),
     vscode.l10n.t("Remove"),
   );
   if (!confirmed) {return;}
 
   try {
-    await removeAppCustomDomain(deps.client, appId);
+    await removeAppDomain(deps.client, entry.app.id, domain.id);
     await deps.refresh();
   } catch (err) {
     deps.showError(err);
   }
-}
-
-function recordLabel(record: APIApplicationDnsRecord): string {
-  return `${record.type} ${record.name}`;
-}
-
-async function showDns(deps: CommandDeps, arg: unknown): Promise<void> {
-  const entry = await deps.resolveApp(arg);
-  if (!entry) {return;}
-  const appId = entry.app.id;
-
-  let records: APIApplicationDnsRecord[];
-  try {
-    records = await getAppDnsRecords(deps.client, appId);
-  } catch (err) {
-    deps.showError(err);
-    return;
-  }
-
-  const customDomain = await readCustomDomainHost(deps, appId);
-  const title = customDomain
-    ? vscode.l10n.t("DNS — {0} ({1})", entry.app.name, customDomain)
-    : vscode.l10n.t("DNS — {0}", entry.app.name);
-
-  type Item =
-    | { label: string; description: string; detail: string; record: APIApplicationDnsRecord; action?: undefined }
-    | { label: string; action: "add" | "remove"; record?: undefined };
-
-  const recordItems: Item[] = records.map((record) => ({
-    label: recordLabel(record),
-    description: record.status,
-    detail: record.value,
-    record,
-  }));
-  const domainItem: Item = customDomain
-    ? { label: `$(trash) ${vscode.l10n.t("Remove custom domain")}`, action: "remove" }
-    : { label: `$(add) ${vscode.l10n.t("Add custom domain…")}`, action: "add" };
-  const items: Item[] = [...recordItems, domainItem];
-
-  const picked = await vscode.window.showQuickPick(items, { title });
-  if (!picked) {return;}
-
-  if (picked.action === "add") {
-    await addCustomDomain(deps, appId);
-    return;
-  }
-  if (picked.action === "remove") {
-    await removeCustomDomain(deps, appId, customDomain ?? "");
-    return;
-  }
-  if (!picked.record) {return;}
-  await vscode.env.clipboard.writeText(picked.record.value);
-  void vscode.window.showInformationMessage(vscode.l10n.t("Value copied to clipboard."));
 }
 
 async function purgeCache(deps: CommandDeps, arg: unknown): Promise<void> {
@@ -218,6 +268,8 @@ export function registerNetworkCommands(deps: CommandDeps): void {
     vscode.commands.registerCommand("vertraCloud.app.publish", (arg: unknown) => publish(deps, arg)),
     vscode.commands.registerCommand("vertraCloud.app.unpublish", (arg: unknown) => unpublish(deps, arg)),
     vscode.commands.registerCommand("vertraCloud.app.setSubdomain", (arg: unknown) => setSubdomain(deps, arg)),
+    vscode.commands.registerCommand("vertraCloud.app.addDomain", (arg: unknown) => addDomain(deps, arg)),
+    vscode.commands.registerCommand("vertraCloud.app.removeDomain", (arg: unknown) => removeDomain(deps, arg)),
     vscode.commands.registerCommand("vertraCloud.app.showDns", (arg: unknown) => showDns(deps, arg)),
     vscode.commands.registerCommand("vertraCloud.app.purgeCache", (arg: unknown) => purgeCache(deps, arg)),
   );

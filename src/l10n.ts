@@ -42,8 +42,24 @@ export function describeError(err: ApiErrorLike): string {
       return vscode.l10n.t("Your plan doesn't support publishing to the web.");
     case "PLAN_DOES_NOT_SUPPORT_CUSTOM_SUBDOMAIN":
       return vscode.l10n.t("Your plan doesn't support a custom subdomain.");
-    case "FREE_PLAN_SUSPENDED":
-      return vscode.l10n.t("The Free plan is suspended. Choose a paid plan to create applications and databases.");
+    case "PLAN_REQUIRED":
+      return vscode.l10n.t("A plan is required for this action. Choose a plan to continue.");
+    case "DOMAIN_NOT_FOUND":
+      return vscode.l10n.t("Domain not found.");
+    case "DOMAIN_LIMIT_REACHED":
+      return vscode.l10n.t("Your plan's custom domain limit was reached.");
+    case "DOMAIN_PORT_LIMIT_REACHED":
+      return vscode.l10n.t("This application already uses the maximum number of distinct ports.");
+    case "INVALID_DOMAIN_PORT":
+      return vscode.l10n.t("Invalid port. Use a port between 1 and 65535.");
+    case "INVALID_PATH_PREFIX":
+      return vscode.l10n.t("Invalid path prefix.");
+    case "INVALID_REDIRECT_TARGET":
+      return vscode.l10n.t("Invalid redirect target.");
+    case "INVALID_CUSTOM_DOMAIN_FORMAT":
+      return vscode.l10n.t("The domain format is invalid.");
+    case "DOMAIN_ALREADY_IN_USE":
+      return vscode.l10n.t("This domain is already in use.");
     case "PLAN_NOT_ALLOWED":
       return vscode.l10n.t("Your plan doesn't allow this action.");
     case "OPERATION_IN_PROGRESS":

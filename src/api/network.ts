@@ -1,10 +1,18 @@
 import type {
   APIApplicationWebPublish,
-  APIApplicationDnsRecord,
+  RESTDeleteAPIApplicationDomainResponse,
+  RESTGetAPIApplicationDomainDnsResponse,
+  RESTGetAPIApplicationDomainsResponse,
+  RESTPatchAPIApplicationDomainBody,
+  RESTPatchAPIApplicationDomainResponse,
+  RESTPostAPIApplicationDomainBody,
+  RESTPostAPIApplicationDomainResponse,
   RESTPostAPIApplicationPurgeCacheBody,
   RESTPostAPIApplicationWebPublishBody,
 } from "@vertracloud/api-types/v1";
 import type { ApiClient } from "./client";
+
+type Success<T> = Extract<T, { response: unknown }>["response"];
 
 export function publishApp(
   client: ApiClient,
@@ -28,27 +36,49 @@ export function setAppSubdomain(client: ApiClient, appId: string, subdomain: str
   });
 }
 
-export function getAppDnsRecords(client: ApiClient, appId: string): Promise<APIApplicationDnsRecord[]> {
-  return client.request<APIApplicationDnsRecord[]>(`/v1/apps/${appId}/network/dns`);
+export function listAppDomains(client: ApiClient, appId: string): Promise<Success<RESTGetAPIApplicationDomainsResponse>> {
+  return client.request<Success<RESTGetAPIApplicationDomainsResponse>>(`/v1/apps/${appId}/domains`);
 }
 
-/**
- * Corpo `APIApplicationCustomDomain` (`{ domain }`) de `@vertracloud/api-types`.
- * 404 `NO_CUSTOM_DOMAIN` é o caminho normal de "sem domínio próprio" — o chamador trata.
- */
-export function getAppCustomDomain(client: ApiClient, appId: string): Promise<{ domain?: string }> {
-  return client.request<{ domain?: string }>(`/v1/apps/${appId}/network/custom`);
-}
-
-export function addAppCustomDomain(client: ApiClient, appId: string, domain: string): Promise<unknown> {
-  return client.request<unknown>(`/v1/apps/${appId}/network/custom`, {
+export function addAppDomain(
+  client: ApiClient,
+  appId: string,
+  body: RESTPostAPIApplicationDomainBody,
+): Promise<Success<RESTPostAPIApplicationDomainResponse>> {
+  return client.request<Success<RESTPostAPIApplicationDomainResponse>>(`/v1/apps/${appId}/domains`, {
     method: "POST",
-    body: { domain },
+    body,
   });
 }
 
-export function removeAppCustomDomain(client: ApiClient, appId: string): Promise<unknown> {
-  return client.request<unknown>(`/v1/apps/${appId}/network/custom`, { method: "DELETE" });
+export function updateAppDomain(
+  client: ApiClient,
+  appId: string,
+  domainId: string,
+  body: RESTPatchAPIApplicationDomainBody,
+): Promise<Success<RESTPatchAPIApplicationDomainResponse>> {
+  return client.request<Success<RESTPatchAPIApplicationDomainResponse>>(`/v1/apps/${appId}/domains/${domainId}`, {
+    method: "PATCH",
+    body,
+  });
+}
+
+export function removeAppDomain(
+  client: ApiClient,
+  appId: string,
+  domainId: string,
+): Promise<Success<RESTDeleteAPIApplicationDomainResponse>> {
+  return client.request<Success<RESTDeleteAPIApplicationDomainResponse>>(`/v1/apps/${appId}/domains/${domainId}`, {
+    method: "DELETE",
+  });
+}
+
+export function getAppDomainDns(
+  client: ApiClient,
+  appId: string,
+  domainId: string,
+): Promise<Success<RESTGetAPIApplicationDomainDnsResponse>> {
+  return client.request<Success<RESTGetAPIApplicationDomainDnsResponse>>(`/v1/apps/${appId}/domains/${domainId}/dns`);
 }
 
 export function purgeAppCache(

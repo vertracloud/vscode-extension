@@ -299,6 +299,18 @@
         "icon": "$(edit)"
       },
       {
+        "command": "vertraCloud.app.addDomain",
+        "title": "%cmd.vertraCloud.app.addDomain%",
+        "category": "Vertra Cloud",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vertraCloud.app.removeDomain",
+        "title": "%cmd.vertraCloud.app.removeDomain%",
+        "category": "Vertra Cloud",
+        "icon": "$(trash)"
+      },
+      {
         "command": "vertraCloud.app.showDns",
         "title": "%cmd.vertraCloud.app.showDns%",
         "category": "Vertra Cloud",
@@ -608,6 +620,14 @@
           "when": "false"
         },
         {
+          "command": "vertraCloud.app.addDomain",
+          "when": "false"
+        },
+        {
+          "command": "vertraCloud.app.removeDomain",
+          "when": "false"
+        },
+        {
           "command": "vertraCloud.app.showDns",
           "when": "false"
         },
@@ -892,6 +912,16 @@
         {
           "command": "vertraCloud.app.setSubdomain",
           "when": "viewItem =~ /^app:/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.addDomain",
+          "when": "viewItem =~ /^app:.*:published/",
+          "group": "4_manage"
+        },
+        {
+          "command": "vertraCloud.app.removeDomain",
+          "when": "viewItem =~ /^app:.*:published/",
           "group": "4_manage"
         },
         {
@@ -1248,7 +1278,7 @@
     "@types/vscode": "^1.85.0",
     "@types/yauzl": "^3.4.0",
     "@types/yazl": "^3.3.1",
-    "@vertracloud/api-types": "0.4.3",
+    "@vertracloud/api-types": "0.5.0",
     "@vertracloud/blob": "0.1.0",
     "@vscode/l10n-dev": "^0.0.35",
     "@vscode/vsce": "^4.0.0",

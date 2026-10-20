@@ -37,6 +37,23 @@ function fakeDeps(handler: (path: string, opts?: Record<string, unknown>) => unk
   return { deps, calls, errors };
 }
 
+function domain(id: string, hostname: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id,
+    hostname,
+    apex: false,
+    companion_of: null,
+    redirect_to: null,
+    redirect_status: 308,
+    path_prefix: null,
+    port: 80,
+    status: "active",
+    ssl_status: "active",
+    created_at: "2026-01-01T00:00:00.000Z",
+    ...extra,
+  };
+}
+
 function runCommand(id: string, arg?: unknown): Promise<void> {
   const callback = registeredCommands.get(id);
   assert.ok(callback, `command ${id} not registered`);
@@ -57,7 +74,7 @@ describe("network commands", () => {
 
   it("publish without a subdomain sends a body without the field", async () => {
     const { deps, calls } = fakeDeps((path) => {
-      if (path === "/v1/apps/app-1/network/publish") {return { subdomain: "random-x", custom_domain: null, type: 2 };}
+      if (path === "/v1/apps/app-1/network/publish") {return { subdomain: "random-x", domains: [], type: 2 };}
       throw new Error(`unexpected ${path}`);
     });
     (vscode.window as Record<string, unknown>).showInputBox = async () => "";
@@ -87,7 +104,7 @@ describe("network commands", () => {
   });
 
   it("unpublish only calls the API after confirmation", async () => {
-    const { deps, calls } = fakeDeps(() => ({ subdomain: null, custom_domain: null, type: 2 }));
+    const { deps, calls } = fakeDeps(() => ({ subdomain: null, domains: [], type: 2 }));
     (vscode.window as Record<string, unknown>).showWarningMessage = async () => undefined;
 
     registerNetworkCommands(deps);
@@ -97,7 +114,7 @@ describe("network commands", () => {
   });
 
   it("unpublish calls DELETE after confirmation is accepted", async () => {
-    const { deps, calls } = fakeDeps(() => ({ subdomain: null, custom_domain: null, type: 2 }));
+    const { deps, calls } = fakeDeps(() => ({ subdomain: null, domains: [], type: 2 }));
     (vscode.window as Record<string, unknown>).showWarningMessage = async (
       _msg: string,
       _opts: unknown,
@@ -123,23 +140,135 @@ describe("network commands", () => {
     assert.deepEqual(patch!.opts?.body, { subdomain: "new-name" });
   });
 
-  it("showDns lists the DNS records", async () => {
+  it("publish reports the first custom domain from the list", async () => {
+    const { deps } = fakeDeps(() => ({ subdomain: "x", domains: ["example.com"], type: 2 }));
+    (vscode.window as Record<string, unknown>).showInputBox = async () => "";
+    const shown: string[] = [];
+    (vscode.window as Record<string, unknown>).showInformationMessage = async (msg: string) => {
+      shown.push(msg);
+      return undefined;
+    };
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.publish");
+
+    assert.ok(shown.some((m) => m.includes("https://example.com")));
+  });
+
+  it("showDns picks a domain and lists its DNS records", async () => {
     const records = [{ type: "CNAME", name: "app.example.com", value: "edge.vertracloud.app", status: "active" }];
-    const { deps } = fakeDeps((path) => {
-      if (path === "/v1/apps/app-1/network/dns") {return records;}
-      if (path === "/v1/apps/app-1/network/custom") {throw Object.assign(new Error("no domain"), { code: "NO_CUSTOM_DOMAIN" });}
+    const { deps, calls } = fakeDeps((path) => {
+      if (path === "/v1/apps/app-1/domains") {return [domain("d1", "app.example.com")];}
+      if (path === "/v1/apps/app-1/domains/d1/dns") {return records;}
       throw new Error(`unexpected ${path}`);
     });
-    let seenItems: Array<{ label: string; detail?: string }> = [];
-    (vscode.window as Record<string, unknown>).showQuickPick = async (items: typeof seenItems) => {
-      seenItems = items;
-      return undefined;
+    const seen: Array<Array<{ label: string; detail?: string }>> = [];
+    (vscode.window as Record<string, unknown>).showQuickPick = async (items: Array<{ label: string; detail?: string }>) => {
+      seen.push(items);
+      return seen.length === 1 ? items[0] : undefined;
     };
 
     registerNetworkCommands(deps);
     await runCommand("vertraCloud.app.showDns");
 
-    assert.ok(seenItems.some((item) => item.label.includes("CNAME") && item.detail === "edge.vertracloud.app"));
+    assert.ok(calls.some((c) => c.path === "/v1/apps/app-1/domains/d1/dns"));
+    assert.ok(seen[1].some((item) => item.label.includes("CNAME") && item.detail === "edge.vertracloud.app"));
+  });
+
+  it("showDns with no domains never asks for the DNS records", async () => {
+    const { deps, calls } = fakeDeps(() => []);
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.showDns");
+
+    assert.deepEqual(calls.map((c) => c.path), ["/v1/apps/app-1/domains"]);
+  });
+
+  it("addDomain posts hostname, www and the optional port and prefix", async () => {
+    const created = [domain("d1", "example.com"), domain("d2", "www.example.com", { companion_of: "d1" })];
+    const { deps, calls } = fakeDeps((path, opts) => {
+      if (path === "/v1/apps/app-1/domains" && opts?.method === "POST") {return created;}
+      if (path === "/v1/apps/app-1/domains/d1/dns") {return [];}
+      throw new Error(`unexpected ${path}`);
+    });
+    const answers = ["example.com", "8080", "/api"];
+    (vscode.window as Record<string, unknown>).showInputBox = async () => answers.shift();
+    (vscode.window as Record<string, unknown>).showQuickPick = async (items: Array<{ label: string; value?: boolean }>) =>
+      items.find((i) => i.value === true);
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.addDomain");
+
+    const post = calls.find((c) => c.opts?.method === "POST");
+    assert.deepEqual(post!.opts?.body, { hostname: "example.com", www: true, port: 8080, path_prefix: "/api" });
+  });
+
+  it("addDomain omits empty port and prefix and sends www false", async () => {
+    const { deps, calls } = fakeDeps((path, opts) => {
+      if (opts?.method === "POST") {return [domain("d1", "example.com")];}
+      return [];
+    });
+    const answers = ["example.com", "", ""];
+    (vscode.window as Record<string, unknown>).showInputBox = async () => answers.shift();
+    (vscode.window as Record<string, unknown>).showQuickPick = async (items: Array<{ label: string; value?: boolean }>) =>
+      items.find((i) => i.value === false);
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.addDomain");
+
+    const post = calls.find((c) => c.opts?.method === "POST");
+    assert.deepEqual(post!.opts?.body, { hostname: "example.com", www: false });
+  });
+
+  it("addDomain validates port and prefix", async () => {
+    const { deps } = fakeDeps(() => []);
+    type Validator = (v: string) => string | undefined;
+    const validators: Validator[] = [];
+    const answers = ["example.com", "", ""];
+    (vscode.window as Record<string, unknown>).showInputBox = async (opts: { validateInput: Validator }) => {
+      validators.push(opts.validateInput);
+      return answers.shift();
+    };
+    (vscode.window as Record<string, unknown>).showQuickPick = async (items: Array<{ value?: boolean }>) => items[0];
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.addDomain");
+
+    const [, port, prefix] = validators;
+    assert.equal(port(""), undefined);
+    assert.equal(port("8080"), undefined);
+    assert.ok(port("0"));
+    assert.ok(port("70000"));
+    assert.ok(port("abc"));
+    assert.equal(prefix(""), undefined);
+    assert.equal(prefix("/api"), undefined);
+    assert.ok(prefix("api"));
+    assert.ok(prefix("/api/"));
+  });
+
+  it("removeDomain deletes the chosen domain after confirmation", async () => {
+    const { deps, calls } = fakeDeps((path, opts) => {
+      if (opts?.method === "DELETE") {return null;}
+      return [domain("d1", "a.example.com"), domain("d2", "b.example.com")];
+    });
+    (vscode.window as Record<string, unknown>).showQuickPick = async (items: Array<{ label: string }>) => items[1];
+    (vscode.window as Record<string, unknown>).showWarningMessage = async (_m: string, _o: unknown, label: string) => label;
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.removeDomain");
+
+    assert.ok(calls.some((c) => c.path === "/v1/apps/app-1/domains/d2" && c.opts?.method === "DELETE"));
+  });
+
+  it("removeDomain does nothing without confirmation", async () => {
+    const { deps, calls } = fakeDeps(() => [domain("d1", "a.example.com")]);
+    (vscode.window as Record<string, unknown>).showQuickPick = async (items: Array<{ label: string }>) => items[0];
+    (vscode.window as Record<string, unknown>).showWarningMessage = async () => undefined;
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.removeDomain");
+
+    assert.ok(!calls.some((c) => c.opts?.method === "DELETE"));
   });
 
   it("purgeCache sends an empty body after confirmation", async () => {

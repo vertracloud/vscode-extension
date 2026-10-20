@@ -13,13 +13,12 @@ function fakeUser(): APIUserInfoResponse {
     id: "1",
     name: "Ana",
     email: "ana@example.com",
-    plan_id: 1,
     language: "pt-br",
     workspace_invites_enabled: true,
     marketing_emails_enabled: true,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
-    plan: { id: 1, name: "Free", expires_at: null, duration: 0, memory: { limit: 512, used: 128 } },
+    plan: { name: "economy", expires_at: "2027-01-01T00:00:00.000Z", duration: 30, memory: { limit: 512, used: 128 } },
     applications: [
       {
         id: "app1",
@@ -27,13 +26,13 @@ function fakeUser(): APIUserInfoResponse {
         type: 2,
         name: "my-app",
         owner_id: "1",
-        owner_plan_id: 1,
+        owner_plan: "economy",
         language: "javascript",
         ram: 256,
         status: "up",
         subdomain: "my-app",
         public_url: "https://my-app.vertraweb.app",
-        custom_domain: null,
+        domains: [],
         last_snapshot: null,
         created_at: "2026-01-01T00:00:00.000Z",
         updated_at: "2026-01-01T00:00:00.000Z",
@@ -51,13 +50,13 @@ function fakeUser(): APIUserInfoResponse {
         type: 2,
         name: "secret-app",
         owner_id: "1",
-        owner_plan_id: 1,
+        owner_plan: "economy",
         language: "python",
         ram: 256,
         status: "down",
         subdomain: null,
         public_url: null,
-        custom_domain: null,
+        domains: [],
         last_snapshot: null,
         created_at: "2026-01-01T00:00:00.000Z",
         updated_at: "2026-01-01T00:00:00.000Z",
@@ -243,5 +242,29 @@ test("app tooltip never leaks the start command or any secret-shaped value", asy
     const item = provider.getTreeItem(child) as { tooltip?: { value: string } };
     assert.equal(item.tooltip?.value.includes("super-secret-token"), false);
   }
+  store.dispose();
+});
+
+test("domain row shows the primary domain and the domain count", async () => {
+  const user = fakeUser();
+  const base = {
+    apex: false, redirect_to: null, redirect_status: 308 as const, path_prefix: null, port: 80,
+    status: "active" as const, ssl_status: "active" as const, created_at: "2026-01-01T00:00:00.000Z",
+  };
+  user.applications[0].domains = [
+    { ...base, id: "w", hostname: "www.example.com", companion_of: "d1" },
+    { ...base, id: "d1", hostname: "example.com", companion_of: null },
+  ];
+  const session = new FakeSession();
+  session.setState({ status: "connected", user });
+  const store = new Store(session, { ...fakeApi(), getMe: async () => user }, new FakeMemento());
+  const provider = new ApplicationsProvider(store);
+  await store.refresh();
+
+  const roots = provider.getChildren();
+  const rows = provider.getChildren(roots[0]) as Array<{ field: string }>;
+  const item = provider.getTreeItem(rows.find((r) => r.field === "domain") as never);
+  assert.equal(item.label, "Domain: example.com");
+  assert.equal(item.description, "Domains: 2");
   store.dispose();
 });

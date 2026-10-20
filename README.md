@@ -53,7 +53,7 @@ The project file gets syntax highlighting, completion, hover help and inline err
 
 ### Network
 
-For applications with web publishing: publish and unpublish, open the site, choose a subdomain, connect a custom domain, see the DNS records to configure, and purge the cache.
+For applications with web publishing: publish and unpublish, open the site, choose a subdomain, add or remove custom domains, see the DNS records to configure, and purge the cache.
 
 ### Databases
 
@@ -140,7 +140,7 @@ Every command is in the Command Palette under **Vertra Cloud**, and in the conte
 | Account | Use API key · Disconnect · Refresh · Show service status · Open dashboard · Open documentation · Copy ID |
 | Project | Link folder to application · Unlink folder · Deploy · Deploy folder... · Pull files from Vertra Cloud · Run checks · Create config file · Edit config file · Show deploys |
 | Applications | Start · Stop · Restart · Restart (reinstall dependencies) · Restart (force build) · Open in browser · Show logs · Toggle realtime logs · Show metrics · Manage environment variables · Manage snapshots · Open remote files · Delete application |
-| Network | Publish to web · Unpublish from web · Set subdomain · Show DNS settings · Purge cache |
+| Network | Publish to web · Unpublish from web · Set subdomain · Add custom domain · Remove custom domain · Show DNS settings · Purge cache |
 | Databases | Create database · Start · Stop · Edit database · Show metrics · Download certificate · Reset password · Manage snapshots · Delete database |
 | Workspaces | Create workspace · Edit workspace · Link application · Link database · Delete workspace · Manage invites · Open workspace invite · View action requests · Request an action |
 | Organization | Create, rename, recolor and delete resource folders · Add or remove a resource · Add or remove favorites |

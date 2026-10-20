@@ -37,6 +37,8 @@
   "cmd.vertraCloud.app.publish": "Publicar na web",
   "cmd.vertraCloud.app.unpublish": "Remover publicação da web",
   "cmd.vertraCloud.app.setSubdomain": "Definir subdomínio",
+  "cmd.vertraCloud.app.addDomain": "Adicionar domínio personalizado",
+  "cmd.vertraCloud.app.removeDomain": "Remover domínio personalizado",
   "cmd.vertraCloud.app.showDns": "Ver configurações de DNS",
   "cmd.vertraCloud.app.purgeCache": "Limpar cache",
   "cmd.vertraCloud.app.showDeploys": "Ver deploys",

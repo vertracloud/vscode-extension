@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { WorkspaceFolderColor } from "@vertracloud/api-types/v1";
 import type { AppEntry, DbEntry } from "../state";
+import { primaryDomain } from "../domains";
 import { formatUptime, statusLabel, formatMegabytes } from "../l10n";
 
 export type AppInfoField = "status" | "ram" | "cpu" | "uptime" | "domain" | "id";
@@ -35,6 +36,11 @@ export function appRamLabel(entry: AppEntry): string {
   return entry.status ? `${entry.status.ram} / ${formatMegabytes(entry.app.ram)}` : `${formatMegabytes(entry.app.ram)}`;
 }
 
+function appDomainHost(entry: AppEntry): string | undefined {
+  const primary = primaryDomain(entry.app.domains);
+  return primary?.hostname ?? entry.app.public_url ?? undefined;
+}
+
 export function appTreeItem(entry: AppEntry): vscode.TreeItem {
   const status = appEffectiveStatus(entry);
   const ramLabel = appRamLabel(entry);
@@ -48,9 +54,10 @@ export function appTreeItem(entry: AppEntry): vscode.TreeItem {
   tooltip.appendMarkdown(`- ID: \`${entry.app.id}\`\n`);
   tooltip.appendMarkdown(`- ${vscode.l10n.t("Language")}: ${entry.app.language}\n`);
   tooltip.appendMarkdown(`- RAM: ${ramLabel}\n`);
-  tooltip.appendMarkdown(
-    `- ${vscode.l10n.t("Public domain")}: ${entry.app.public_url ?? vscode.l10n.t("Not published")}\n`
-  );
+  tooltip.appendMarkdown(`- ${vscode.l10n.t("Public domain")}: ${appDomainHost(entry) ?? vscode.l10n.t("Not published")}\n`);
+  if (entry.app.domains.length > 0) {
+    tooltip.appendMarkdown(`- ${vscode.l10n.t("Domains: {0}", entry.app.domains.length)}\n`);
+  }
   tooltip.appendMarkdown(`- ${vscode.l10n.t("Uptime")}: ${formatUptime(entry.status?.uptime ?? null)}\n`);
   item.tooltip = tooltip;
   return item;
@@ -93,10 +100,13 @@ export function appInfoItem(entry: AppEntry, field: AppInfoField): vscode.TreeIt
       return item;
     }
     case "domain": {
-      const domain = entry.app.public_url ?? vscode.l10n.t("Not published");
+      const domain = appDomainHost(entry) ?? vscode.l10n.t("Not published");
       const item = new vscode.TreeItem(vscode.l10n.t("Domain: {0}", domain), vscode.TreeItemCollapsibleState.None);
       item.iconPath = new vscode.ThemeIcon("globe");
-      if (entry.app.public_url) {
+      if (entry.app.domains.length > 1) {
+        item.description = vscode.l10n.t("Domains: {0}", entry.app.domains.length);
+      }
+      if (appDomainHost(entry)) {
         item.command = { command: "vertraCloud.app.open", title: "", arguments: [entry.app.id] };
       }
       return item;

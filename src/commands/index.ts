@@ -98,7 +98,7 @@ export function createDeps(context: vscode.ExtensionContext, parts: DepsParts): 
       });
       return;
     }
-    if (error.code.startsWith("PLAN_") || error.code === "FREE_PLAN_SUSPENDED") {
+    if (error.code.startsWith("PLAN_")) {
       const action = vscode.l10n.t("View plans");
       void Promise.resolve(vscode.window.showErrorMessage(message, action)).then((choice) => {
         if (choice === action) {openUrl(PLANS_URL);}

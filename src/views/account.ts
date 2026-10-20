@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import type { Store } from "../state";
+import { planLabel } from "../domains";
 import { formatMegabytes } from "../l10n";
 
 type Node = "identity" | "plan" | "service-status";
@@ -26,8 +27,11 @@ export class AccountProvider implements vscode.TreeDataProvider<Node> {
       return item;
     }
     if (node === "plan") {
-      const item = new vscode.TreeItem(user.plan.name, vscode.TreeItemCollapsibleState.None);
-      item.description = vscode.l10n.t("{0} / {1} RAM", formatMegabytes(user.plan.memory.used), formatMegabytes(user.plan.memory.limit));
+      const plan = user.plan;
+      const item = new vscode.TreeItem(plan ? planLabel(plan.name) : vscode.l10n.t("No plan"), vscode.TreeItemCollapsibleState.None);
+      if (plan) {
+        item.description = vscode.l10n.t("{0} / {1} RAM", formatMegabytes(plan.memory.used), formatMegabytes(plan.memory.limit));
+      }
       item.iconPath = new vscode.ThemeIcon("credit-card");
       item.contextValue = "account";
       return item;
