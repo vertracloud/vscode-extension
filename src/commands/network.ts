@@ -61,10 +61,14 @@ async function unpublish(deps: CommandDeps, arg: unknown): Promise<void> {
   const entry = await deps.resolveApp(arg);
   if (!entry) {return;}
 
-  const confirmed = await confirmSimple(
-    vscode.l10n.t("Unpublish \"{0}\"? It will no longer be reachable on the web.", entry.app.name),
-    vscode.l10n.t("Unpublish"),
-  );
+  const hasDomains = (entry.app.domains?.length ?? 0) > 0;
+  const message = hasDomains
+    ? vscode.l10n.t(
+        "Unpublish \"{0}\"? It will no longer be reachable on the web, and all of its custom domains will be permanently removed. To use them again you will need to add them and validate the DNS again.",
+        entry.app.name,
+      )
+    : vscode.l10n.t("Unpublish \"{0}\"? It will no longer be reachable on the web.", entry.app.name);
+  const confirmed = await confirmSimple(message, vscode.l10n.t("Unpublish"));
   if (!confirmed) {return;}
 
   try {

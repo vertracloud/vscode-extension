@@ -113,6 +113,40 @@ describe("network commands", () => {
     assert.equal(calls.length, 0);
   });
 
+  it("unpublish warns that custom domains are removed when the app has any", async () => {
+    const { deps, calls } = fakeDeps(() => ({}));
+    const entry = await deps.resolveApp(undefined);
+    (entry!.app as unknown as Record<string, unknown>).domains = [domain("d1", "my-app.com.br")];
+    const messages: string[] = [];
+    (vscode.window as Record<string, unknown>).showWarningMessage = async (msg: string) => {
+      messages.push(msg);
+      return undefined;
+    };
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.unpublish");
+
+    assert.equal(calls.length, 0);
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /custom domains/i);
+    assert.match(messages[0], /DNS/);
+  });
+
+  it("unpublish keeps the plain message when the app has no custom domains", async () => {
+    const { deps } = fakeDeps(() => ({}));
+    const messages: string[] = [];
+    (vscode.window as Record<string, unknown>).showWarningMessage = async (msg: string) => {
+      messages.push(msg);
+      return undefined;
+    };
+
+    registerNetworkCommands(deps);
+    await runCommand("vertraCloud.app.unpublish");
+
+    assert.equal(messages.length, 1);
+    assert.doesNotMatch(messages[0], /custom domains/i);
+  });
+
   it("unpublish calls DELETE after confirmation is accepted", async () => {
     const { deps, calls } = fakeDeps(() => ({ subdomain: null, domains: [], type: 2 }));
     (vscode.window as Record<string, unknown>).showWarningMessage = async (

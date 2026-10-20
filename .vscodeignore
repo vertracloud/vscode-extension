@@ -18,3 +18,7 @@ package-lock.json
 docs/**
 release-please-config.json
 .release-please-manifest.json
+AGENTS.md
+AGENT.md
+CLAUDE.md
+.claude/**

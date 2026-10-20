@@ -182,6 +182,7 @@
   "Open": "Abrir",
   "Application published at {0}": "Aplicação publicada em {0}",
   "Unpublish \"{0}\"? It will no longer be reachable on the web.": "Despublicar \"{0}\"? Ela deixará de estar acessível na web.",
+  "Unpublish \"{0}\"? It will no longer be reachable on the web, and all of its custom domains will be permanently removed. To use them again you will need to add them and validate the DNS again.": "Despublicar \"{0}\"? Ela deixará de estar acessível na web e todos os seus domínios próprios serão removidos de forma permanente. Para usá-los de novo, será preciso adicioná-los e validar o DNS outra vez.",
   "Unpublish": "Despublicar",
   "New subdomain": "Novo subdomínio",
   "Custom domain": "Domínio personalizado",

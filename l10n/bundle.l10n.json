@@ -182,6 +182,7 @@
   "Open": "Open",
   "Application published at {0}": "Application published at {0}",
   "Unpublish \"{0}\"? It will no longer be reachable on the web.": "Unpublish \"{0}\"? It will no longer be reachable on the web.",
+  "Unpublish \"{0}\"? It will no longer be reachable on the web, and all of its custom domains will be permanently removed. To use them again you will need to add them and validate the DNS again.": "Unpublish \"{0}\"? It will no longer be reachable on the web, and all of its custom domains will be permanently removed. To use them again you will need to add them and validate the DNS again.",
   "Unpublish": "Unpublish",
   "New subdomain": "New subdomain",
   "Custom domain": "Custom domain",

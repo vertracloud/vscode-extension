@@ -1,7 +1,12 @@
 # Publishing checklist
 
-This is a manual process. Nothing in CI publishes anything. Follow these steps when a maintainer
-has decided to release a version.
+Releases are published by CI. Every push to `main` runs the `release` workflow: release-please
+opens or updates a release PR, and when that PR is merged the workflow builds the package, runs
+`npm run package:check`, publishes the same `.vsix` to the Visual Studio Marketplace and Open VSX,
+and attaches it to the GitHub release.
+
+The steps below are the manual fallback, for when the workflow is unavailable or a maintainer needs
+to publish by hand. The checklist under "Before publishing" also applies to the release PR.
 
 ## Before publishing
 
@@ -31,9 +36,10 @@ This produces `dist/vertra-cloud-<version>.vsix`.
 npm run package:check
 ```
 
-Also open the `.vsix` (it is a zip archive) and confirm it contains only what should ship: compiled
-output, the manifest, localization bundles, icons and license — no source maps, no test files, no
-`node_modules` beyond what esbuild bundled, no `.env` or credential of any kind.
+The check fails when the package holds source, tests, source maps, `node_modules`, `.env` files or
+local tooling guidance files. Also open the `.vsix` (it is a zip
+archive) and confirm it contains only what should ship: compiled output, the manifest, localization
+bundles, icons and license.
 
 ## Compute a checksum
 

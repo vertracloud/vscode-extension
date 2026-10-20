@@ -2,7 +2,17 @@ import { execFileSync } from "node:child_process";
 import { statSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-const FORBIDDEN = [/^src\//, /^test\//, /\.map$/, /\.env/, /node_modules\//, /\.vsix$/];
+const FORBIDDEN = [
+  /^src\//,
+  /^test\//,
+  /\.map$/,
+  /\.env/,
+  /node_modules\//,
+  /\.vsix$/,
+  /(^|\/)AGENTS?\.md$/i,
+  /(^|\/)CLAUDE\.md$/i,
+  /(^|\/)\.claude\//,
+];
 
 function findVsix(dir) {
   const files = readdirSync(dir).filter((f) => f.endsWith(".vsix"));
@@ -23,7 +33,8 @@ const entries = output
   .map((line) => line.trim().split(/\s+/).slice(3).join(" "))
   .filter(Boolean);
 
-const violations = entries.filter((entry) => FORBIDDEN.some((re) => re.test(entry)));
+const inPackage = (entry) => entry.replace(/^extension\//, "");
+const violations = entries.filter((entry) => FORBIDDEN.some((re) => re.test(inPackage(entry))));
 
 console.log(`${target} — ${(size / 1024).toFixed(1)} KB, ${entries.length} files`);
 for (const entry of entries) console.log(`  ${entry}`);
