@@ -4,7 +4,6 @@
   "Building": "Construindo",
   "Created {0}, but the build failed. Check the application logs.": "{0} criado, mas o build falhou. Confira os logs da aplicação.",
   "Created {0}. It is still building in the background.": "{0} criado. Ainda está sendo construído em segundo plano.",
-  "Dependencies missing from your project: {0}": "Dependências ausentes no seu projeto: {0}",
   "Online": "Online",
   "Offline": "Offline",
   "Service issue": "Problema no serviço",

@@ -46,6 +46,20 @@ test("completion suggests known keys at the start of a line", async () => {
   assert.ok(labels.includes("MAIN"));
 });
 
+test("completion after LANGUAGE= lists the supported languages", async () => {
+  setup();
+  const provider = registeredCompletionProviders[0];
+  const doc = createFakeTextDocument(vscode.Uri.file(join(dir, "vertracloud.config")), "LANGUAGE=");
+  const items = (await provider.provideCompletionItems(
+    doc as never,
+    new vscode.Position(0, 9) as never,
+  )) as vscode.CompletionItem[];
+  const labels = items.map((i) => i.label);
+  assert.ok(labels.includes("deno"));
+  assert.ok(labels.includes("dotnet"));
+  assert.ok(labels.includes("elixir"));
+});
+
 test("completion after MAIN= lists real files in the folder", async () => {
   await fsWriteFile(join(dir, "index.js"), "");
   await fsWriteFile(join(dir, "vertracloud.config"), "MAIN=");

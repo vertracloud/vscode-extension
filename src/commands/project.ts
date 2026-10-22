@@ -286,12 +286,6 @@ export function registerProjectCommands(deps: CommandDeps): void {
           : vscode.l10n.t("Created {0}.", created.name),
       );
     }
-    const missing = created.missing_dependencies ?? [];
-    if (missing.length > 0) {
-      void vscode.window.showWarningMessage(
-        vscode.l10n.t("Dependencies missing from your project: {0}", missing.join(", ")),
-      );
-    }
     await deps.refresh();
   });
 

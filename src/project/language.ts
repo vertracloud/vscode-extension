@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { KEY_DOCS, KNOWN_KEYS, KnownKey, parseConfig, validateConfig } from "./config";
+import { KEY_DOCS, KNOWN_KEYS, KnownKey, LANGUAGES, parseConfig, validateConfig } from "./config";
 
 export const LANGUAGE_ID = "vertracloud-config";
 
@@ -77,6 +77,10 @@ class ConfigCompletionProvider implements vscode.CompletionItemProvider {
       return [...VERSION_SUGGESTIONS, ...runtimes].map(
         (value) => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember),
       );
+    }
+
+    if (parsed.key === "LANGUAGE") {
+      return LANGUAGES.map((value) => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
     }
 
     if (parsed.key === "MEMORY") {

@@ -8,6 +8,7 @@ import {
   parseConfig,
   serializeSet,
   readConfig,
+  KNOWN_KEYS,
   writeConfigKey,
   validateConfig,
 } from "../src/project/config";
@@ -100,6 +101,13 @@ test("validateConfig: VERSION accepts known aliases or the runtimes list", async
   assert.equal(known.length, 0);
   const unknown = await validateConfig({ VERSION: "9.9.9" }, ctx);
   assert.ok(unknown.some((i) => i.key === "VERSION" && i.severity === "warning"));
+});
+
+test("parseConfig and KNOWN_KEYS accept LANGUAGE without an unknown-key warning", async () => {
+  assert.ok((KNOWN_KEYS as readonly string[]).includes("LANGUAGE"));
+  const ctx = { fileExists: async () => true, runtimes: [] };
+  const issues = await validateConfig({ LANGUAGE: "deno" }, ctx);
+  assert.equal(issues.length, 0);
 });
 
 test("validateConfig: unknown keys warn, NAME/START/BUILD have length limits", async () => {

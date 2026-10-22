@@ -16,7 +16,9 @@ export interface ParsedConfig {
   lines: ParsedLine[];
 }
 
-export const KNOWN_KEYS = ["ID", "NAME", "MEMORY", "MAIN", "VERSION", "SUBDOMAIN", "START", "BUILD", "DESCRIPTION"] as const;
+export const KNOWN_KEYS = ["ID", "NAME", "MEMORY", "MAIN", "VERSION", "LANGUAGE", "SUBDOMAIN", "START", "BUILD", "DESCRIPTION"] as const;
+/** Values accepted by LANGUAGE; without it the platform detects the language from the manifest. */
+export const LANGUAGES = ["javascript", "typescript", "bun", "python", "static", "php", "go", "ruby", "java", "rust", "deno", "dotnet", "elixir"] as const;
 export type KnownKey = (typeof KNOWN_KEYS)[number];
 
 export const KEY_DOCS: Record<KnownKey, string> = {
@@ -25,6 +27,7 @@ export const KEY_DOCS: Record<KnownKey, string> = {
   MEMORY: "Memory in MB, integer, minimum 100.",
   MAIN: "Entry point file, relative to the project root.",
   VERSION: "Runtime version: recommended, latest, auto, or a specific version.",
+  LANGUAGE: "Forces the language. Without it, the platform detects it from the project manifest.",
   SUBDOMAIN: "Desired subdomain: lowercase letters, digits and hyphens.",
   START: "Custom start command, overrides package.json.",
   BUILD: "Custom build command, run before start.",

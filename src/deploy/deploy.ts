@@ -131,7 +131,7 @@ export interface CreateAppFields {
   workspace_id?: string;
 }
 
-/** `missing_dependencies` só vem depois do build; o create (202) não traz mais `removed_directories`. */
+/** O create (202) devolve o app em `building`; o estado final vem do poll em `GET /v1/apps/:id`. */
 export type CreateAppResult = APIApplication;
 
 export interface CreateAppFromFolderOptions {
