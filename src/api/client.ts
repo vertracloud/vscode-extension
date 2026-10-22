@@ -50,7 +50,11 @@ export interface RequestOptions {
 }
 
 function buildUrl(path: string, query?: Record<string, QueryValue>): string {
-  const url = new URL(path.startsWith("http") ? path : baseUrl + path);
+  // Todo path é relativo à base da API: URL absoluta levaria o Bearer a outra origem.
+  if (!path.startsWith("/") || path.startsWith("//")) {
+    throw new ApiError(0, "INVALID_PATH", "API path must be relative to the API base URL");
+  }
+  const url = new URL(baseUrl + path);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) {url.searchParams.set(key, String(value));}
@@ -110,10 +114,15 @@ export class ApiClient {
     path: string,
     opts: { query?: Record<string, QueryValue>; signal: AbortSignal },
   ): Promise<ReadableStream<Uint8Array>> {
+    const url = buildUrl(path, opts.query);
     const headers = await this.headers({ accept: "text/event-stream" });
     let response: Response;
     try {
-      response = await fetch(buildUrl(path, opts.query), { headers, signal: opts.signal });
+      response = await fetch(url, {
+        headers,
+        redirect: "error",
+        signal: opts.signal,
+      });
     } catch (error) {
       throw this.networkError(error, opts.signal.aborted, false);
     }
@@ -124,6 +133,7 @@ export class ApiClient {
   }
 
   private async attempt<T>(path: string, method: string, opts: RequestOptions): Promise<T> {
+    const url = buildUrl(path, opts.query);
     const controller = new AbortController();
     let timedOut = false;
     let cancelled = false;
@@ -160,10 +170,12 @@ export class ApiClient {
 
       let response: Response;
       try {
-        response = await fetch(buildUrl(path, opts.query), {
+        response = await fetch(url, {
           method,
           headers,
           body,
+          // Nunca seguir redirect: o fetch reenviaria o Bearer a outra origem.
+          redirect: "error",
           signal: controller.signal,
         });
       } catch (error) {

@@ -213,3 +213,34 @@ test("a 401 on an anonymous route never fires onUnauthorized", async () => {
   await assert.rejects(api.request("/v1/users/me"));
   assert.equal(fired, 1);
 });
+
+test("rejects an absolute URL path without sending any request", async () => {
+  const fetchMock = vi.fn(async () => json({ response: {} }));
+  vi.stubGlobal("fetch", fetchMock);
+
+  for (const path of ["https://evil.example/steal", "http://evil.example/x", "//evil.example/x", "HTTPS://evil.example"]) {
+    await assert.rejects(
+      () => client().request(path),
+      (error: unknown) => error instanceof ApiError && error.code === "INVALID_PATH",
+    );
+  }
+  await assert.rejects(
+    () => client().stream("https://evil.example/s", { signal: new AbortController().signal }),
+    (error: unknown) => error instanceof ApiError && error.code === "INVALID_PATH",
+  );
+  assert.equal(fetchMock.mock.calls.length, 0);
+});
+
+test("never follows redirects, so the bearer token cannot reach another origin", async () => {
+  const inits: RequestInit[] = [];
+  vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+    inits.push(init);
+    return json({ response: {} });
+  });
+
+  await client().request("/v1/apps");
+  await client().stream("/v1/events", { signal: new AbortController().signal }).catch(() => undefined);
+
+  assert.equal(inits.length, 2);
+  for (const init of inits) {assert.equal(init.redirect, "error");}
+});
