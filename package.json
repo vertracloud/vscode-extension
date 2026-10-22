@@ -1279,7 +1279,7 @@
     "@types/yauzl": "^3.4.0",
     "@types/yazl": "^3.3.1",
     "@vertracloud/api-types": "0.5.0",
-    "@vertracloud/blob": "0.1.0",
+    "@vertracloud/blob": "0.1.4",
     "@vscode/l10n-dev": "^0.0.35",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
