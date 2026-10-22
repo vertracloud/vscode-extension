@@ -58,11 +58,22 @@ describe(".vscodeignore", () => {
   const lines = fs
     .readFileSync(path.join(ROOT, ".vscodeignore"), "utf8")
     .split("\n")
-    .map((line) => line.trim());
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
 
-  for (const entry of ["AGENTS.md", "AGENT.md", "CLAUDE.md", ".claude/**"]) {
-    it(`excludes ${entry}`, () => {
-      assert.ok(lines.includes(entry));
-    });
-  }
+  it("is an allowlist: ignores everything first", () => {
+    assert.equal(lines[0], "**");
+  });
+
+  it("re-includes only explicit shipped paths", () => {
+    const includes = lines.filter((line) => line.startsWith("!")).map((line) => line.slice(1));
+    assert.ok(includes.length > 0);
+    for (const entry of includes) {
+      assert.ok(!entry.includes("**"), `${entry} is too broad`);
+      assert.ok(
+        !/(^|\/)(\.env|\.claude|context|src|test|AGENTS?\.md|CLAUDE\.md)/i.test(entry) && !/\.map$/.test(entry),
+        `${entry} must never ship`,
+      );
+    }
+  });
 });
