@@ -118,20 +118,23 @@ export interface ConfigSource {
   build_command: string | null;
   subdomain: string | null;
   description?: string;
+  /** App de imagem Docker: linguagem, versão, main, start e build vêm da imagem e ficam fora do arquivo. */
+  custom_image?: unknown;
 }
 
 /** Full `vertracloud.config` for an application, in the key order the CLI documents. */
 export function buildConfigFromApp(app: ConfigSource): string {
   const subdomain = app.subdomain ? app.subdomain.split(".")[0] : "";
+  const fromImage = Boolean(app.custom_image);
   const lines: Array<[KnownKey, string]> = [
     ["ID", app.id],
     ["NAME", app.name],
     ["MEMORY", String(app.ram)],
-    ["MAIN", app.main_file],
-    ["VERSION", app.version || "recommended"],
+    ["MAIN", fromImage ? "" : app.main_file],
+    ["VERSION", fromImage ? "" : app.version || "recommended"],
     ["SUBDOMAIN", subdomain],
-    ["START", app.start_command ?? ""],
-    ["BUILD", app.build_command ?? ""],
+    ["START", fromImage ? "" : app.start_command ?? ""],
+    ["BUILD", fromImage ? "" : app.build_command ?? ""],
     ["DESCRIPTION", app.description ?? ""],
   ];
   return lines

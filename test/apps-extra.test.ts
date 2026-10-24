@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { ApiError } from "../src/api/client";
+import { getDeployWebhook } from "../src/api/deploys";
 import * as vscodeMock from "./vscode-mock";
 import { registerAppsExtraCommands } from "../src/commands/apps-extra";
 import type { CommandDeps } from "../src/commands/deps";
@@ -55,6 +56,20 @@ async function runCommand(deps: CommandDeps, commandId: string): Promise<void> {
   assert.ok(handler, `command ${commandId} not registered`);
   await handler!(undefined);
 }
+
+test("getDeployWebhook exposes the linked branch, null when the link has none", async () => {
+  const client = (branch: string | null) =>
+    ({
+      request: async () => ({ webhook_url: "https://hook", repo_owner: "acme", repo_name: "site", branch }),
+    }) as unknown as Parameters<typeof getDeployWebhook>[0];
+
+  const withBranch = await getDeployWebhook(client("release"), "app1");
+  assert.equal(withBranch.branch, "release");
+  assert.equal(withBranch.url, "https://hook");
+
+  const legacy = await getDeployWebhook(client(null), "app1");
+  assert.equal(legacy.branch, null);
+});
 
 test("showDeploys tolerates a 403 on the webhook lookup and still lists deploys", async () => {
   const deploy = {

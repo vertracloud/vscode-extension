@@ -41,6 +41,11 @@
           "when": "vertraCloud.connected"
         },
         {
+          "id": "vertraCloudImages",
+          "name": "%view.images%",
+          "when": "vertraCloud.connected"
+        },
+        {
           "id": "vertraCloudWorkspaces",
           "name": "%view.workspaces%",
           "when": "vertraCloud.connected"
@@ -531,6 +536,78 @@
         "title": "%cmd.vertraCloud.blob.delete%",
         "category": "Vertra Cloud",
         "icon": "$(trash)"
+      },
+      {
+        "command": "vertraCloud.images.refresh",
+        "title": "%cmd.vertraCloud.images.refresh%",
+        "category": "Vertra Cloud",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vertraCloud.images.create",
+        "title": "%cmd.vertraCloud.images.create%",
+        "category": "Vertra Cloud",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vertraCloud.images.rename",
+        "title": "%cmd.vertraCloud.images.rename%",
+        "category": "Vertra Cloud",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "vertraCloud.images.editDescription",
+        "title": "%cmd.vertraCloud.images.editDescription%",
+        "category": "Vertra Cloud",
+        "icon": "$(note)"
+      },
+      {
+        "command": "vertraCloud.images.rebuild",
+        "title": "%cmd.vertraCloud.images.rebuild%",
+        "category": "Vertra Cloud",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "vertraCloud.images.showBuildLog",
+        "title": "%cmd.vertraCloud.images.showBuildLog%",
+        "category": "Vertra Cloud",
+        "icon": "$(output)"
+      },
+      {
+        "command": "vertraCloud.images.versions",
+        "title": "%cmd.vertraCloud.images.versions%",
+        "category": "Vertra Cloud",
+        "icon": "$(history)"
+      },
+      {
+        "command": "vertraCloud.images.downloadContext",
+        "title": "%cmd.vertraCloud.images.downloadContext%",
+        "category": "Vertra Cloud",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "vertraCloud.images.linkGithub",
+        "title": "%cmd.vertraCloud.images.linkGithub%",
+        "category": "Vertra Cloud",
+        "icon": "$(github)"
+      },
+      {
+        "command": "vertraCloud.images.unlinkGithub",
+        "title": "%cmd.vertraCloud.images.unlinkGithub%",
+        "category": "Vertra Cloud",
+        "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "vertraCloud.images.delete",
+        "title": "%cmd.vertraCloud.images.delete%",
+        "category": "Vertra Cloud",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "vertraCloud.images.createApp",
+        "title": "%cmd.vertraCloud.images.createApp%",
+        "category": "Vertra Cloud",
+        "icon": "$(rocket)"
       }
     ],
     "menus": {
@@ -826,6 +903,16 @@
           "command": "vertraCloud.blob.refresh",
           "when": "view == vertraCloudBlob",
           "group": "navigation@1"
+        },
+        {
+          "command": "vertraCloud.images.create",
+          "when": "view == vertraCloudImages",
+          "group": "navigation@0"
+        },
+        {
+          "command": "vertraCloud.images.refresh",
+          "when": "view == vertraCloudImages",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -861,12 +948,12 @@
         },
         {
           "command": "vertraCloud.app.restartReinstall",
-          "when": "viewItem =~ /^app:up/",
+          "when": "viewItem =~ /^app:up(?!.*:image)/",
           "group": "2_operate"
         },
         {
           "command": "vertraCloud.app.restartForceBuild",
-          "when": "viewItem =~ /^app:up/",
+          "when": "viewItem =~ /^app:up(?!.*:image)/",
           "group": "2_operate"
         },
         {
@@ -1183,6 +1270,71 @@
           "command": "vertraCloud.blob.delete",
           "when": "viewItem =~ /^blob:object:/",
           "group": "9_danger"
+        },
+        {
+          "command": "vertraCloud.images.createApp",
+          "when": "viewItem =~ /^image:success/",
+          "group": "inline"
+        },
+        {
+          "command": "vertraCloud.images.showBuildLog",
+          "when": "viewItem =~ /^image:(building|failed)/",
+          "group": "inline"
+        },
+        {
+          "command": "vertraCloud.images.create",
+          "when": "viewItem == images:workspace",
+          "group": "1_create"
+        },
+        {
+          "command": "vertraCloud.images.showBuildLog",
+          "when": "viewItem =~ /^image:/",
+          "group": "1_inspect@1"
+        },
+        {
+          "command": "vertraCloud.images.versions",
+          "when": "viewItem =~ /^image:/",
+          "group": "1_inspect@2"
+        },
+        {
+          "command": "vertraCloud.images.createApp",
+          "when": "viewItem =~ /^image:success/",
+          "group": "2_use"
+        },
+        {
+          "command": "vertraCloud.images.rename",
+          "when": "viewItem =~ /^image:(?!.*:system)/",
+          "group": "3_update@1"
+        },
+        {
+          "command": "vertraCloud.images.editDescription",
+          "when": "viewItem =~ /^image:(?!.*:system)/",
+          "group": "3_update@2"
+        },
+        {
+          "command": "vertraCloud.images.rebuild",
+          "when": "viewItem =~ /^image:(?!.*:system)/",
+          "group": "3_update@3"
+        },
+        {
+          "command": "vertraCloud.images.downloadContext",
+          "when": "viewItem =~ /^image:(?!.*:system)/",
+          "group": "3_update@4"
+        },
+        {
+          "command": "vertraCloud.images.linkGithub",
+          "when": "viewItem =~ /^image:(?!.*:system)/",
+          "group": "3_update@5"
+        },
+        {
+          "command": "vertraCloud.images.unlinkGithub",
+          "when": "viewItem =~ /^image:(?!.*:system).*:github/",
+          "group": "3_update@6"
+        },
+        {
+          "command": "vertraCloud.images.delete",
+          "when": "viewItem =~ /^image:(?!.*:system)/",
+          "group": "9_danger"
         }
       ],
       "explorer/context": [
@@ -1190,6 +1342,11 @@
           "command": "vertraCloud.blob.upload",
           "when": "vertraCloud.connected",
           "group": "vertraCloud@1"
+        },
+        {
+          "command": "vertraCloud.images.create",
+          "when": "vertraCloud.connected && explorerResourceIsFolder",
+          "group": "vertraCloud@2"
         }
       ]
     },
@@ -1213,6 +1370,11 @@
         "view": "vertraCloudDBs",
         "contents": "%welcome.dbs.empty%",
         "when": "vertraCloud.connected && vertraCloud.dbsEmpty"
+      },
+      {
+        "view": "vertraCloudImages",
+        "contents": "%welcome.images.empty%",
+        "when": "vertraCloud.connected && vertraCloud.imagesEmpty"
       }
     ],
     "languages": [

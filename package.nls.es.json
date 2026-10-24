@@ -89,5 +89,19 @@
   "cmd.vertraCloud.blob.rename": "Blob: Renombrar o mover",
   "cmd.vertraCloud.blob.toggleVisibility": "Blob: Alternar público/privado",
   "cmd.vertraCloud.blob.delete": "Blob: Eliminar",
-  "config.blob.baseUrl": "URL base de la API de Blob Storage."
+  "config.blob.baseUrl": "URL base de la API de Blob Storage.",
+  "view.images": "Imágenes Docker",
+  "welcome.images.empty": "Aún no tienes imágenes Docker. Las imágenes personalizadas están disponibles en Enterprise 28, 30 y 32: envía una carpeta con un Dockerfile o vincula un repositorio de GitHub.\n\n[Crear imagen](command:vertraCloud.images.create)",
+  "cmd.vertraCloud.images.refresh": "Imágenes Docker: Actualizar",
+  "cmd.vertraCloud.images.create": "Crear imagen Docker",
+  "cmd.vertraCloud.images.rename": "Renombrar imagen Docker",
+  "cmd.vertraCloud.images.editDescription": "Editar descripción de la imagen Docker",
+  "cmd.vertraCloud.images.rebuild": "Reconstruir imagen Docker desde una carpeta",
+  "cmd.vertraCloud.images.showBuildLog": "Ver log del build de la imagen Docker",
+  "cmd.vertraCloud.images.versions": "Listar versiones de la imagen Docker",
+  "cmd.vertraCloud.images.downloadContext": "Descargar contexto de build de la imagen Docker",
+  "cmd.vertraCloud.images.linkGithub": "Vincular imagen Docker a GitHub",
+  "cmd.vertraCloud.images.unlinkGithub": "Desvincular imagen Docker de GitHub",
+  "cmd.vertraCloud.images.delete": "Eliminar imagen Docker",
+  "cmd.vertraCloud.images.createApp": "Crear aplicación desde una imagen Docker"
 }

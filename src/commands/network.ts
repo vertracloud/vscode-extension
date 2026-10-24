@@ -11,6 +11,8 @@ import {
   unpublishApp,
 } from "../api/network";
 import { domainLabel } from "../domains";
+import { isImageApp } from "../images/app";
+import { chooseImagePort, parsePort, PortHints } from "../images/ports";
 import type { CommandDeps } from "./deps";
 
 const SUBDOMAIN_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
@@ -20,6 +22,19 @@ const PATH_PREFIX_MAX = 128;
 async function confirmSimple(message: string, confirmLabel: string): Promise<boolean> {
   const choice = await vscode.window.showWarningMessage(message, { modal: true }, confirmLabel);
   return choice === confirmLabel;
+}
+
+/** Porta que a imagem escuta, para publicar na web um app de imagem que nasceu sem porta. */
+async function askImagePort(deps: CommandDeps, imageId: string, current?: number | null): Promise<number | undefined> {
+  const hints = deps.context.workspaceState ? new PortHints(deps.context.workspaceState) : undefined;
+  const value = await vscode.window.showInputBox({
+    title: vscode.l10n.t("Port the application listens on"),
+    prompt: vscode.l10n.t("The platform sets it in the PORT variable and sends the traffic to it."),
+    value: String(chooseImagePort({ current, hint: hints?.get(imageId) })),
+    ignoreFocusOut: true,
+    validateInput: (text: string) => (parsePort(text) ? undefined : vscode.l10n.t("Use a port between 1 and 65535.")),
+  });
+  return value === undefined ? undefined : parsePort(value);
 }
 
 async function publish(deps: CommandDeps, arg: unknown): Promise<void> {
@@ -39,8 +54,25 @@ async function publish(deps: CommandDeps, arg: unknown): Promise<void> {
   });
   if (subdomain === undefined) {return;}
 
+  const image = isImageApp(entry.app) ? entry.app.custom_image : undefined;
+  let port: number | undefined;
+  if (image && (image.port === null || image.port === undefined)) {
+    port = await askImagePort(deps, image.image_id);
+    if (port === undefined) {return;}
+  }
+
   try {
-    const result = await publishApp(deps.client, entry.app.id, subdomain ? { subdomain } : {});
+    const body = { ...(subdomain ? { subdomain } : {}), ...(port !== undefined ? { port } : {}) };
+    let result;
+    try {
+      result = await publishApp(deps.client, entry.app.id, body);
+    } catch (err) {
+      // A lista do painel pode estar velha: o servidor é quem sabe que o app não tem porta.
+      if (!image || port !== undefined || (err as { code?: string })?.code !== "IMAGE_APP_PORT_REQUIRED") {throw err;}
+      const asked = await askImagePort(deps, image.image_id, image.port);
+      if (asked === undefined) {return;}
+      result = await publishApp(deps.client, entry.app.id, { ...body, port: asked });
+    }
     await deps.refresh();
     const host = result.subdomain;
     if (host) {

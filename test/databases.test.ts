@@ -167,11 +167,51 @@ describe("commands/databases", () => {
 
     await run(fakeDeps(), "vertraCloud.db.create");
 
-    const body = JSON.parse(calls[0].init.body as string);
+    const body = JSON.parse(calls.find((c) => c.init.method === "POST")!.init.body as string);
     assert.equal(body.type, 3);
+    assert.equal("version" in body, false);
     assert.equal(body.ram, 512);
     assert.equal(body.name, "cache");
     assert.equal(refreshCalls, 1);
+  });
+
+  function stubCatalog(): Call[] {
+    const calls: Call[] = [];
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      const response = url.endsWith("/v1/databases/versions")
+        ? { "1": { recommended: "18", available: ["18", "17", "16"] } }
+        : { id: "db-2" };
+      return new Response(JSON.stringify({ response }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    return calls;
+  }
+
+  it("create offers the catalog versions with the recommended first and sends the chosen one", async () => {
+    const calls = stubCatalog();
+    quickPickQueue = [
+      { engine: { type: 1, label: "PostgreSQL", minRam: 1024, defaultUser: "postgres" } },
+      { label: "17", line: "17" },
+    ];
+    inputBoxQueue = ["db", "1024", ""];
+
+    await run(fakeDeps(), "vertraCloud.db.create");
+
+    const items = showQuickPickCalls[1][0] as { label: string; description?: string }[];
+    assert.deepEqual(items.map((i) => i.label), ["18", "17", "16"]);
+    assert.ok(items[0].description);
+    assert.equal(items[1].description, undefined);
+    const body = JSON.parse(calls.find((c) => c.init.method === "POST")!.init.body as string);
+    assert.equal(body.version, "17");
+  });
+
+  it("create stops without calling the API when the version pick is cancelled", async () => {
+    const calls = stubCatalog();
+    quickPickQueue = [{ engine: { type: 1, label: "PostgreSQL", minRam: 1024, defaultUser: "postgres" } }, undefined];
+
+    await run(fakeDeps(), "vertraCloud.db.create");
+
+    assert.equal(calls.some((c) => c.init.method === "POST"), false);
   });
 
   it("create rejects RAM below the engine minimum", async () => {
@@ -209,6 +249,17 @@ describe("commands/databases", () => {
     assert.ok(message.includes("s3cr3t-pass"));
     assert.ok(message.includes("postgres"));
     assert.deepEqual(channel.lines, []);
+  });
+
+  it("resetPassword mostra o username devolvido pela api e cai no padrão do engine sem ele", async () => {
+    stubFetch({ response: { password: "pw1" } });
+    await run(fakeDeps({ username: "vertracloud" }), "vertraCloud.db.resetPassword");
+    assert.ok((showInformationMessageCalls[0] as [string])[0].includes('user "vertracloud"'));
+
+    showInformationMessageCalls.length = 0;
+    stubFetch({ response: { password: "pw2" } });
+    await run(fakeDeps({ type: 4, username: undefined }), "vertraCloud.db.resetPassword");
+    assert.ok((showInformationMessageCalls[0] as [string])[0].includes('user "root"'));
   });
 
   it("downloadCertificate writes the received buffer", async () => {

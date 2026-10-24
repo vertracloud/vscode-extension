@@ -80,6 +80,12 @@ export async function collectFiles(
 export interface CreateZipOptions {
   token?: vscode.CancellationToken;
   onProgress?(done: number, total: number): void;
+  /** Teto do total sem comprimir; padrão {@link MAX_UPLOAD_BYTES}. O zip final tem sempre esse mesmo teto. */
+  maxTotalBytes?: number;
+  /** Erro para um total ou zip acima do teto; padrão `FILE_TOO_LARGE`. */
+  tooLarge?(bytes: number, kind: "total" | "zip"): ApiError;
+  /** Confere de novo, antes de cada arquivo, que ele segue regular e do mesmo tamanho (contexto de imagem). */
+  recheck?: boolean;
 }
 
 export interface CreatedZip {
@@ -106,14 +112,32 @@ async function rmTempDir(dir: string): Promise<void> {
   await fs.rm(dir, { recursive: true, force: true }).catch(() => undefined);
 }
 
+/** Entre a varredura e o empacotamento o arquivo pode ter virado link ou mudado de tamanho. */
+async function assertUnchanged(file: CollectedFile): Promise<void> {
+  let stat;
+  try {
+    stat = await fs.lstat(file.abs);
+  } catch {
+    stat = undefined;
+  }
+  if (!stat || !stat.isFile() || stat.size !== file.size) {
+    throw new ApiError(
+      0,
+      "FILE_CHANGED",
+      vscode.l10n.t("The file {0} changed while the project was being packed. Try again.", file.rel),
+    );
+  }
+}
+
 export async function createZip(
   files: CollectedFile[],
   opts: CreateZipOptions = {},
 ): Promise<CreatedZip> {
   if (files.length === 0) {throw emptyProjectError();}
 
+  const tooLarge = opts.tooLarge ?? ((bytes: number) => fileTooLargeError(bytes));
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
-  if (totalBytes > MAX_UPLOAD_BYTES) {throw fileTooLargeError(totalBytes);}
+  if (totalBytes > (opts.maxTotalBytes ?? MAX_UPLOAD_BYTES)) {throw tooLarge(totalBytes, "total");}
 
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "vertra-"));
   const zipPath = path.join(tmpDir, "deploy.zip");
@@ -125,7 +149,15 @@ export async function createZip(
   }
 
   const zipfile = new ZipFile();
-  for (const file of files) {zipfile.addFile(file.abs, file.rel);}
+  try {
+    for (const file of files) {
+      if (opts.recheck) {await assertUnchanged(file);}
+      zipfile.addFile(file.abs, file.rel);
+    }
+  } catch (err) {
+    await cleanup();
+    throw err;
+  }
   zipfile.end();
 
   const output = createWriteStream(zipPath);
@@ -165,7 +197,7 @@ export async function createZip(
   const stat = await fs.stat(zipPath);
   if (stat.size > MAX_UPLOAD_BYTES) {
     await cleanup();
-    throw fileTooLargeError(stat.size);
+    throw tooLarge(stat.size, "zip");
   }
 
   return { path: zipPath, size: stat.size, cleanup };

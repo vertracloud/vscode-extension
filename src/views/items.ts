@@ -5,7 +5,7 @@ import { primaryDomain } from "../domains";
 import { formatUptime, statusLabel, formatMegabytes } from "../l10n";
 
 export type AppInfoField = "status" | "ram" | "cpu" | "uptime" | "domain" | "id";
-export type DbInfoField = "status" | "engine" | "host" | "ram" | "id";
+export type DbInfoField = "status" | "engine" | "version" | "host" | "ram" | "id";
 
 export function folderIcon(color: WorkspaceFolderColor | undefined): vscode.ThemeIcon {
   return new vscode.ThemeIcon("folder", color && color !== "neutral" ? new vscode.ThemeColor(`charts.${color}`) : undefined);
@@ -29,6 +29,7 @@ function appContextValue(entry: AppEntry): string {
   let value = `app:${status}`;
   if (entry.favorite) {value += ":favorite";}
   if (entry.app.public_url) {value += ":published";}
+  if (entry.app.custom_image) {value += ":image";}
   return value;
 }
 
@@ -52,7 +53,7 @@ export function appTreeItem(entry: AppEntry): vscode.TreeItem {
   tooltip.appendMarkdown(`**${entry.app.name}**\n\n`);
   tooltip.appendMarkdown(`- ${vscode.l10n.t("Status")}: ${statusLabel(status)}\n`);
   tooltip.appendMarkdown(`- ID: \`${entry.app.id}\`\n`);
-  tooltip.appendMarkdown(`- ${vscode.l10n.t("Language")}: ${entry.app.language}\n`);
+  tooltip.appendMarkdown(`- ${vscode.l10n.t("Language")}: ${entry.app.custom_image ? vscode.l10n.t("Docker image") : entry.app.language}\n`);
   tooltip.appendMarkdown(`- RAM: ${ramLabel}\n`);
   tooltip.appendMarkdown(`- ${vscode.l10n.t("Public domain")}: ${appDomainHost(entry) ?? vscode.l10n.t("Not published")}\n`);
   if (entry.app.domains.length > 0) {
@@ -134,6 +135,7 @@ export function dbTreeItem(entry: DbEntry): vscode.TreeItem {
   tooltip.appendMarkdown(`- ${vscode.l10n.t("Status")}: ${statusLabel(up ? "up" : "down")}\n`);
   tooltip.appendMarkdown(`- ID: \`${entry.db.id}\`\n`);
   tooltip.appendMarkdown(`- ${vscode.l10n.t("Engine")}: ${entry.db.type}\n`);
+  if (entry.db.version) {tooltip.appendMarkdown(`- ${vscode.l10n.t("Version")}: ${entry.db.version}\n`);}
   tooltip.appendMarkdown(`- ${vscode.l10n.t("Host")}: ${entry.db.host}:${entry.db.port}\n`);
   tooltip.appendMarkdown(`- RAM: ${ramLabel}\n`);
   if (entry.status) {tooltip.appendMarkdown(`- ${vscode.l10n.t("Storage")}: ${entry.status.storage}\n`);}
@@ -142,7 +144,7 @@ export function dbTreeItem(entry: DbEntry): vscode.TreeItem {
 }
 
 export function dbInfoFields(): DbInfoField[] {
-  return ["status", "engine", "host", "ram", "id"];
+  return ["status", "engine", "version", "host", "ram", "id"];
 }
 
 export function dbInfoItem(entry: DbEntry, field: DbInfoField): vscode.TreeItem {
@@ -156,6 +158,11 @@ export function dbInfoItem(entry: DbEntry, field: DbInfoField): vscode.TreeItem 
     case "engine": {
       const item = new vscode.TreeItem(vscode.l10n.t("Engine: {0}", entry.db.type), vscode.TreeItemCollapsibleState.None);
       item.iconPath = new vscode.ThemeIcon("database");
+      return item;
+    }
+    case "version": {
+      const item = new vscode.TreeItem(vscode.l10n.t("Version: {0}", entry.db.version || "-"), vscode.TreeItemCollapsibleState.None);
+      item.iconPath = new vscode.ThemeIcon("versions");
       return item;
     }
     case "host": {

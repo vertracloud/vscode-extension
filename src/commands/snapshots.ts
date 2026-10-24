@@ -9,11 +9,14 @@ import {
   saveBufferInteractive,
   type SnapshotScope,
 } from "../api/snapshots";
+import { isImageApp } from "../images/app";
 import type { CommandDeps } from "./deps";
 
 interface Resource {
   id: string;
   name: string;
+  /** App que roda de uma imagem Docker: o restore pode voltar também a versão da imagem. */
+  imageApp?: boolean;
 }
 
 function formatDate(iso: string): string {
@@ -97,11 +100,29 @@ async function handleSnapshot(
 
   const confirmed = await deps.confirmDanger(resource.name, restoreLabel);
   if (!confirmed) {return;}
+
+  let restoreImageVersion = false;
+  if (resource.imageApp) {
+    const dataOnly = vscode.l10n.t("Restore the data only");
+    const withVersion = vscode.l10n.t("Restore the data and go back to the image version of this snapshot");
+    const mode = await vscode.window.showQuickPick([dataOnly, withVersion], {
+      title: vscode.l10n.t("This application runs from a Docker image"),
+      placeHolder: vscode.l10n.t("The data of /app always comes back. Do you also want the code of that moment?"),
+    });
+    if (!mode) {return;}
+    restoreImageVersion = mode === withVersion;
+  }
+
   try {
-    const result = await restoreSnapshot(deps.client, resource.id, snapshot.id, scope);
+    const result = await restoreSnapshot(deps.client, resource.id, snapshot.id, scope, { restoreImageVersion });
     void vscode.window.showInformationMessage(
       result?.message || vscode.l10n.t("Snapshot restore started for {0}.", resource.name),
     );
+    if (result?.warning === "IMAGE_VERSION_NOT_FOUND") {
+      void vscode.window.showWarningMessage(
+        vscode.l10n.t("The image version recorded in this snapshot no longer exists, so only the data was restored. The application stays on its current version."),
+      );
+    }
     await deps.refresh();
     if (scope === "applications") {
       deps.remoteFiles?.invalidateApp(resource.id);
@@ -113,10 +134,13 @@ async function handleSnapshot(
 }
 
 async function manageSnapshots(deps: CommandDeps, arg: unknown, scope: SnapshotScope): Promise<void> {
-  const resource: Resource | undefined =
-    scope === "applications"
-      ? (await deps.resolveApp(arg))?.app
-      : (await deps.resolveDatabase(arg))?.db;
+  let resource: Resource | undefined;
+  if (scope === "applications") {
+    const app = (await deps.resolveApp(arg))?.app;
+    resource = app ? { id: app.id, name: app.name, imageApp: isImageApp(app) } : undefined;
+  } else {
+    resource = (await deps.resolveDatabase(arg))?.db;
+  }
   if (!resource) {return;}
 
   const snapshot = await pickSnapshot(deps, resource, scope);

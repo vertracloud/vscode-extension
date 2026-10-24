@@ -3,6 +3,7 @@ import type { APIApplicationDeployment } from "@vertracloud/api-types/v1";
 import { downloadApp, saveBufferInteractive } from "../api/snapshots";
 import { getAppDeploys, getDeployWebhook } from "../api/deploys";
 import type { ApiClient } from "../api/client";
+import { isImageApp } from "../images/app";
 import type { CommandDeps } from "./deps";
 
 /** Só os campos que `app.editConfig` edita (subconjunto de `UpdateAppConfigBodySchema`, api/src/@types/app.ts). */
@@ -107,16 +108,18 @@ interface FieldSpec {
   nullable: boolean;
   maxLength?: number;
   isRam?: boolean;
+  /** Vem da imagem num app de imagem: o campo não existe para ele. */
+  codeField?: boolean;
   current(app: { name: string; description?: string; main_file: string; version: string; start_command: string | null; build_command: string | null; ram: number }): string;
 }
 
 const FIELDS: FieldSpec[] = [
   { field: "name", label: vscode.l10n.t("Name"), nullable: false, maxLength: 50, current: (a) => a.name },
   { field: "description", label: vscode.l10n.t("Description"), nullable: true, maxLength: 128, current: (a) => a.description ?? "" },
-  { field: "main_file", label: vscode.l10n.t("Main file"), nullable: false, current: (a) => a.main_file },
-  { field: "version", label: vscode.l10n.t("Version"), nullable: false, current: (a) => a.version },
-  { field: "start_command", label: vscode.l10n.t("Start command"), nullable: true, maxLength: 512, current: (a) => a.start_command ?? "" },
-  { field: "build_command", label: vscode.l10n.t("Build command"), nullable: true, maxLength: 512, current: (a) => a.build_command ?? "" },
+  { field: "main_file", codeField: true, label: vscode.l10n.t("Main file"), nullable: false, current: (a) => a.main_file },
+  { field: "version", codeField: true, label: vscode.l10n.t("Version"), nullable: false, current: (a) => a.version },
+  { field: "start_command", codeField: true, label: vscode.l10n.t("Start command"), nullable: true, maxLength: 512, current: (a) => a.start_command ?? "" },
+  { field: "build_command", codeField: true, label: vscode.l10n.t("Build command"), nullable: true, maxLength: 512, current: (a) => a.build_command ?? "" },
   { field: "ram", label: vscode.l10n.t("RAM (MB)"), nullable: false, isRam: true, current: (a) => String(a.ram) },
 ];
 
@@ -142,8 +145,9 @@ async function editConfig(deps: CommandDeps, arg: unknown): Promise<void> {
   if (!entry) {return;}
   const app = entry.app;
 
+  const fields = isImageApp(app) ? FIELDS.filter((spec) => !spec.codeField) : FIELDS;
   const picked = await vscode.window.showQuickPick(
-    FIELDS.map((spec) => ({ label: spec.label, detail: spec.current(app), spec })),
+    fields.map((spec) => ({ label: spec.label, detail: spec.current(app), spec })),
     { title: vscode.l10n.t("Edit configuration — {0}", app.name) },
   );
   if (!picked) {return;}

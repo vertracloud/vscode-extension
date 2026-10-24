@@ -41,10 +41,12 @@ export function restoreSnapshot(
   resourceId: string,
   snapshotId: string,
   scope: SnapshotScope,
+  opts?: { restoreImageVersion?: boolean },
 ): Promise<APISnapshotRestoreResponse> {
   return client.request<APISnapshotRestoreResponse>(
     `/v1/users/${resourceId}/snapshots/${snapshotId}/restore`,
-    { method: "POST", query: { scope } },
+    // Sem corpo = só os dados, como sempre; `restore_image_version` só existe para app de imagem.
+    { method: "POST", query: { scope }, ...(opts?.restoreImageVersion ? { body: { restore_image_version: true } } : {}) },
   );
 }
 

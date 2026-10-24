@@ -4,6 +4,7 @@ import {
   createDatabase,
   deleteDatabase,
   downloadDatabaseCertificate,
+  getDatabaseVersions,
   getDatabaseMetrics,
   resetDatabasePassword,
   startDatabase,
@@ -22,7 +23,7 @@ interface EngineInfo {
 }
 
 /**
- * Mínimos e usuário padrão por engine, conforme a KB e a criação no control plane.
+ * Mínimos e usuário legado por engine (fallback quando a api não devolve `username`), conforme a KB e a criação no control plane.
  * `DatabaseType` é `1|2|3|4` (api-types); os literais aqui seguem essa mesma numeração.
  */
 const ENGINES: EngineInfo[] = [
@@ -31,6 +32,11 @@ const ENGINES: EngineInfo[] = [
   { type: 3, label: "Redis", minRam: 512, defaultUser: vscode.l10n.t("none") },
   { type: 4, label: "MySQL", minRam: 1024, defaultUser: "root" },
 ];
+
+/** Usuário real do banco (`username` da api); sem ele, o padrão legado do engine. */
+function usernameOf(db: APIDatabase): string {
+  return db.username || engineOf(db.type).defaultUser;
+}
 
 function engineOf(type: DatabaseType): EngineInfo {
   return ENGINES.find((e) => e.type === type) ?? ENGINES[0];
@@ -42,6 +48,30 @@ async function pickEngine(): Promise<EngineInfo | undefined> {
     { placeHolder: vscode.l10n.t("Choose the database engine") },
   );
   return picked?.engine;
+}
+
+/**
+ * Escolhe a linha de versão do engine a partir do catálogo da api (nunca uma lista fixa). A recomendada
+ * vem primeiro, logo já é a opção ativa. `undefined` = cancelou; `null` = sem catálogo (a api usa a recomendada).
+ */
+async function pickVersion(deps: CommandDeps, engine: EngineInfo): Promise<string | null | undefined> {
+  let catalog;
+  try {
+    catalog = (await getDatabaseVersions(deps.client))[engine.type];
+  } catch {
+    return null;
+  }
+  if (!catalog || catalog.available.length === 0) {return null;}
+  const lines = [catalog.recommended, ...catalog.available.filter((line) => line !== catalog.recommended)];
+  const picked = await vscode.window.showQuickPick(
+    lines.map((line) => ({
+      label: line,
+      description: line === catalog.recommended ? vscode.l10n.t("Recommended") : undefined,
+      line,
+    })),
+    { placeHolder: vscode.l10n.t("Choose the database version") },
+  );
+  return picked?.line;
 }
 
 async function inputRam(minRam: number): Promise<number | undefined> {
@@ -62,6 +92,9 @@ async function inputRam(minRam: number): Promise<number | undefined> {
 async function createDb(deps: CommandDeps): Promise<void> {
   const engine = await pickEngine();
   if (!engine) {return;}
+
+  const version = await pickVersion(deps, engine);
+  if (version === undefined) {return;}
 
   const name = await vscode.window.showInputBox({
     prompt: vscode.l10n.t("Database name"),
@@ -84,6 +117,7 @@ async function createDb(deps: CommandDeps): Promise<void> {
       name,
       ram,
       type: engine.type,
+      ...(version === null ? {} : { version }),
       description: description || undefined,
     });
     await deps.refresh();
@@ -179,7 +213,7 @@ async function resetPassword(deps: CommandDeps, arg: unknown): Promise<void> {
       "New password for {0} ({1}, user \"{2}\", {3}:{4}): {5}\nThis password won't be shown again.",
       entry.db.name,
       engine.label,
-      engine.defaultUser,
+      usernameOf(entry.db),
       entry.db.host,
       entry.db.port,
       password,

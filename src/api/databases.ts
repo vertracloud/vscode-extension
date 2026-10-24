@@ -2,6 +2,7 @@ import type {
   APIDatabase,
   APIDatabaseMetrics,
   APIDatabasePasswordReset,
+  APIDatabaseVersions,
   RESTPostAPIDatabaseCreateBody,
 } from "@vertracloud/api-types/v1";
 import type { ApiClient } from "./client";
@@ -77,4 +78,9 @@ export function resetDatabasePassword(
     method: "POST",
     query: scope(opts),
   });
+}
+
+/** Catálogo de versões (linhas) por engine; a chave é o `type` numérico. */
+export function getDatabaseVersions(client: ApiClient): Promise<APIDatabaseVersions> {
+  return client.request<APIDatabaseVersions>("/v1/databases/versions");
 }

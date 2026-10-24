@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { formatIssues, issuesFromDetails } from "./images/issues";
 
 /** Estrutura mínima que qualquer erro de API (ApiError real ou fake de teste) precisa ter. */
 export interface ApiErrorLike {
@@ -44,6 +45,10 @@ export function describeError(err: ApiErrorLike): string {
       return vscode.l10n.t("Your plan doesn't support a custom subdomain.");
     case "PLAN_REQUIRED":
       return vscode.l10n.t("A plan is required for this action. Choose a plan to continue.");
+    case "INVALID_DATABASE_VERSION":
+      return vscode.l10n.t("Invalid database version for this engine. Pick one of the available versions.");
+    case "SNAPSHOT_VERSION_NEWER":
+      return vscode.l10n.t("The chosen version is older than the snapshot's. Use the same version or a newer one.");
     case "DOMAIN_NOT_FOUND":
       return vscode.l10n.t("Domain not found.");
     case "DOMAIN_LIMIT_REACHED":
@@ -114,6 +119,45 @@ export function describeError(err: ApiErrorLike): string {
       return vscode.l10n.t("The application is still building. Try again when it finishes.");
     case "APP_SHIELD_COOLDOWN":
       return vscode.l10n.t("This application is in cooldown after a network incident.");
+    case "PLAN_DOES_NOT_SUPPORT_CUSTOM_IMAGES":
+      return vscode.l10n.t("Custom Docker images are available on Enterprise 28, 30 and 32.");
+    case "MAX_IMAGES_REACHED":
+      return vscode.l10n.t("You reached your plan's limit of Docker images. Delete one to create another.");
+    case "DOCKERFILE_NOT_FOUND":
+      return vscode.l10n.t("There is no file named exactly Dockerfile at the root of the project.");
+    case "DOCKERFILE_REFUSED": {
+      const found = formatIssues(issuesFromDetails(err.details));
+      const base = vscode.l10n.t("The Dockerfile has instructions the platform refuses.");
+      return found.length > 0 ? `${base} ${found.join("; ")}` : base;
+    }
+    case "IMAGE_CONTEXT_TOO_LARGE":
+      // Recusa local, antes do envio: a mensagem já vem traduzida e diz qual limite estourou.
+      if (err.message && err.details && typeof err.details === "object" && (err.details as { local?: unknown }).local === true) {return err.message;}
+      return vscode.l10n.t("The build context is too large (limits: 100 MB sent, 512 MB uncompressed, 50,000 files and a 1 MB Dockerfile). Use a .dockerignore.");
+    case "IMAGE_BUILD_IN_PROGRESS":
+      return vscode.l10n.t("A build of this image is already running. Wait for it to finish and try again.");
+    case "IMAGE_NOT_READY":
+      return vscode.l10n.t("The image has no ready version yet. Wait for the build to finish.");
+    case "IMAGE_TOO_LARGE":
+      return vscode.l10n.t("The built image is larger than 10 GB uncompressed.");
+    case "IMAGE_LABEL_REFUSED":
+      return vscode.l10n.t("The image sets a label that the platform reserves. Remove it and build again.");
+    case "IMAGE_VOLUME_REFUSED":
+      return vscode.l10n.t("The image declares a VOLUME at /app or below (or with a relative path), which the platform does not accept.");
+    case "IMAGE_BUILDER_UNAVAILABLE":
+      return vscode.l10n.t("Images can't be built right now. Try again shortly.");
+    case "IMAGE_NAME_MISMATCH":
+      return vscode.l10n.t("The name typed is not the image name.");
+    case "IMAGE_NOT_FOUND":
+      return vscode.l10n.t("Image not found.");
+    case "IMAGE_VERSION_NOT_FOUND":
+      return vscode.l10n.t("Image version not found, or its log was not stored.");
+    case "IMAGE_APP_PORT_REQUIRED":
+      return vscode.l10n.t("Give the port the image listens on, because the application has no port yet.");
+    case "IMAGE_APP_FIELD_NOT_APPLICABLE":
+      return vscode.l10n.t("Language, version, main file, start and build commands come from the image and can't be changed here.");
+    case "IMAGE_APP_CODE_NOT_APPLICABLE":
+      return vscode.l10n.t("This application runs from an image, so its code can't be edited in place. Update the image instead.");
     default:
       return err.message ?? err.code;
   }

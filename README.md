@@ -4,7 +4,7 @@
 [![Open VSX](https://img.shields.io/open-vsx/v/VertraCloud/vertra-cloud.svg?label=Open%20VSX)](https://open-vsx.org/extension/VertraCloud/vertra-cloud)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Official [Vertra Cloud](https://vertracloud.app) extension: deploy, watch logs, check metrics, edit environment variables, manage databases, snapshots and workspaces, and edit your app's files — without leaving the editor.
+Official [Vertra Cloud](https://vertracloud.app) extension: deploy, watch logs, check metrics, edit environment variables, manage databases, Docker images, snapshots and workspaces, and edit your app's files — without leaving the editor.
 
 - Works in VS Code, Cursor, Google Antigravity and other VS Code-compatible editors.
 - Interface in English, Portuguese and Spanish, following your editor's language.
@@ -59,6 +59,26 @@ For applications with web publishing: publish and unpublish, open the site, choo
 
 Create databases, start and stop them, edit their name and memory, view metrics, download the TLS certificate and reset the password. The new password is shown once, right after the reset — it is never stored or shown again. Deleting a database asks you to type its name.
 
+### Docker images
+
+The **Docker Images** view lists your custom images with the status of the latest build (building, ready or failed), the reason when a build failed, and the applications that run from each one. The images of a workspace appear under that workspace. Custom images are available on Enterprise 28, 30 and 32; on other plans the view stays empty and creating one tells you why. The full guide is at [docs.vertracloud.app/guides/custom-docker-images](https://docs.vertracloud.app/guides/custom-docker-images).
+
+- **Create Docker image** takes a folder (from the Command Palette, or right-click a folder in the Explorer) or a GitHub repository and branch. A folder needs a file named exactly `Dockerfile` at its root. It is zipped like the Vertra CLI does it: `.dockerignore` is respected, `.env*` files and symbolic links never leave your computer, and the extension stops before uploading anything over 100 MB (or over 512 MB uncompressed or 50,000 files).
+- **Checked before building**: the Dockerfile is checked first. Refusals are listed with their line and stop the build; warnings (for example a `WORKDIR` under `/app`) ask you to confirm.
+- **Rename Docker image** and **Edit Docker image description** (right-click an image) change the name (1 to 50 characters, unique among your images) and the description (up to 128 characters; empty removes it) without building anything: your applications keep running. The description also appears in the image's tooltip and details.
+- **Rebuild from folder** replaces the whole build context. A rebuild never restarts your applications, and a failed build keeps the current version.
+- **Show build log** replays the log of the build in an Output channel and keeps following it while the build runs.
+- **List versions**, **Download build context**, **Link to GitHub** (a push to the branch rebuilds the image) and **Unlink from GitHub**.
+- **Delete image** asks you to type the name. It also deletes every application created from the image, and an API key needs `apps:delete` as well when the image has applications.
+- **Create application from image** asks for the name, RAM, whether it serves web traffic, the subdomain, the port (pre-filled with the first `EXPOSE` of your Dockerfile, or 80) and the variables.
+
+For an application that runs from an image:
+
+- **Deploy** is a commit: your files go on top of the image's current build context and the image is rebuilt. The extension tells you how many applications use the image before sending, and only this application restarts, and only if you ask for a restart.
+- **Publish to web** asks for the port the image listens on when the application was created without web.
+- **Restore** a snapshot can also bring back the image version the snapshot was taken on, when that version still exists.
+- Language, version, main file, start and build commands come from the image, so they are not offered.
+
 ### Rollbacks
 
 **Rollbacks...** on an application lists its versions with status, author and date. Pick one to roll back to it (with the option to bring back that version's environment variables, after showing which names would change), view the log of a version that crashed, or copy its ID. Rolling back needs the Pro plan or above.
@@ -107,6 +127,7 @@ Grant only the scopes you use when creating the key.
 | Snapshots | `snapshots:read`, `snapshots:write` |
 | Folders and favorites | `account:write` |
 | Blob Storage | `blob:read` (browse, preview, links), `blob:write` (upload, rename, visibility, delete) |
+| Docker images | `images:read` (list, details, versions, logs, context, Dockerfile check), `images:write` (create, rebuild, delete, GitHub link); creating an application from an image uses `apps:write` |
 | Workspaces | `workspaces:read`, `workspaces:write` (+ `workspaces:invites` for invites, `workspaces:delete` to delete a workspace) |
 
 A missing scope shows up as an error naming the scope, with a shortcut to the key management page. The full list is in the [API reference](https://docs.vertracloud.app/api-reference/introduction).
@@ -141,6 +162,7 @@ Every command is in the Command Palette under **Vertra Cloud**, and in the conte
 | Project | Link folder to application · Unlink folder · Deploy · Deploy folder... · Pull files from Vertra Cloud · Run checks · Create config file · Edit config file · Show deploys |
 | Applications | Start · Stop · Restart · Restart (reinstall dependencies) · Restart (force build) · Open in browser · Show logs · Toggle realtime logs · Show metrics · Manage environment variables · Manage snapshots · Open remote files · Delete application |
 | Network | Publish to web · Unpublish from web · Set subdomain · Add custom domain · Remove custom domain · Show DNS settings · Purge cache |
+| Docker images | Create Docker image · Rebuild Docker image from folder · Show build log · List versions · Download build context · Link to GitHub · Unlink from GitHub · Delete image · Create application from image |
 | Databases | Create database · Start · Stop · Edit database · Show metrics · Download certificate · Reset password · Manage snapshots · Delete database |
 | Workspaces | Create workspace · Edit workspace · Link application · Link database · Delete workspace · Manage invites · Open workspace invite · View action requests · Request an action |
 | Organization | Create, rename, recolor and delete resource folders · Add or remove a resource · Add or remove favorites |

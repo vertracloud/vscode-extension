@@ -8,6 +8,10 @@ import { buildErrorHint } from "../l10n";
 import type { CommandDeps } from "./deps";
 import { register } from "./index";
 import { downloadApp } from "../api/snapshots";
+import { getImage } from "../api/images";
+import { isImageApp, summarizeImageCommit } from "../images/app";
+import { findDockerfileRoot, planAllowsImages } from "../images/dockerfile";
+import type { AppEntry } from "../state";
 import { extractInto } from "../deploy/pull";
 
 const DEFAULT_MEMORY = 512;
@@ -94,6 +98,35 @@ function fieldsFromConfig(values: Record<string, string>, subdomain?: string): C
   };
 }
 
+/**
+ * Subir arquivos para um app de imagem é um commit: os arquivos entram por cima do contexto atual e a
+ * imagem, que pode ter outros apps, é rebuildada. Pede o ok antes de enviar qualquer coisa.
+ */
+async function confirmImageCommit(deps: CommandDeps, app: AppEntry["app"]): Promise<{ imageName?: string } | undefined> {
+  if (!isImageApp(app)) {return {};}
+  let count: number | undefined;
+  let imageName: string | undefined;
+  try {
+    const image = await getImage(deps.client, app.custom_image.image_id);
+    count = image.apps.length;
+    imageName = image.name;
+  } catch {
+    // sem escopo ou imagem de workspace: segue sem a contagem
+  }
+  const detail = [
+    vscode.l10n.t("The files go on top of the current build context of the image."),
+    count === undefined ? undefined : vscode.l10n.t("The image is used by {0} application(s).", count),
+    vscode.l10n.t("Only this one restarts, and only if you ask for a restart. The other applications keep their version until you restart or deploy them."),
+  ].filter(Boolean).join(" ");
+  const go = vscode.l10n.t("Deploy");
+  const choice = await vscode.window.showWarningMessage(
+    vscode.l10n.t("Deploying {0} rebuilds the Docker image it runs from.", app.name),
+    { modal: true, detail },
+    go,
+  );
+  return choice === go ? { imageName } : undefined;
+}
+
 export function registerProjectCommands(deps: CommandDeps): void {
   const { context } = deps;
 
@@ -107,7 +140,15 @@ export function registerProjectCommands(deps: CommandDeps): void {
     return choice === yes;
   };
 
-  const afterDeploy = (appId: string, appName: string): void => {
+  const afterDeploy = (appId: string, appName: string, result?: unknown, imageName?: string): void => {
+    const commit = summarizeImageCommit(result, imageName);
+    if (commit) {
+      const showBuild = vscode.l10n.t("Show build log");
+      void Promise.resolve(vscode.window.showInformationMessage(commit.text, showBuild)).then((choice) => {
+        if (choice === showBuild) {void vscode.commands.executeCommand("vertraCloud.images.showBuildLog", { imageId: commit.imageId });}
+      });
+      return;
+    }
     const showLogs = vscode.l10n.t("Show logs");
     void Promise.resolve(
       vscode.window.showInformationMessage(vscode.l10n.t("Deployed {0}.", appName), showLogs),
@@ -188,15 +229,18 @@ export function registerProjectCommands(deps: CommandDeps): void {
     const target = await linkedTarget();
     if (!target) {return;}
 
+    const entry = deps.store.apps.find((e) => e.app.id === target.appId);
+    const commitContext = entry ? await confirmImageCommit(deps, entry.app) : {};
+    if (!commitContext) {return;}
     const restart = await askRestart();
     if (restart === undefined) {return;}
     const message = await askMessage(target.folder.uri.fsPath);
     if (message === undefined) {return;}
 
-    const entry = deps.store.apps.find((e) => e.app.id === target.appId);
     const appName = entry?.app.name ?? target.folder.name;
+    let result: unknown;
     try {
-      await deployToApp(deps.client, {
+      result = await deployToApp(deps.client, {
         appId: target.appId,
         appName,
         root: target.folder.uri.fsPath,
@@ -208,7 +252,7 @@ export function registerProjectCommands(deps: CommandDeps): void {
       return;
     }
 
-    afterDeploy(target.appId, appName);
+    afterDeploy(target.appId, appName, result, commitContext.imageName);
     deps.remoteFiles?.invalidateApp(target.appId);
     await deps.store.pollAfterMutation(target.appId, "up");
   });
@@ -225,19 +269,22 @@ export function registerProjectCommands(deps: CommandDeps): void {
 
     const configId = (await readConfig(folderUri))?.values.ID;
     if (configId) {
+      const entry = deps.store.apps.find((e) => e.app.id === configId);
+      const commitContext = entry ? await confirmImageCommit(deps, entry.app) : {};
+      if (!commitContext) {return;}
       const restart = await askRestart();
       if (restart === undefined) {return;}
       const message = await askMessage(folderUri.fsPath);
       if (message === undefined) {return;}
-      const entry = deps.store.apps.find((e) => e.app.id === configId);
       const appName = entry?.app.name ?? configId;
+      let result: unknown;
       try {
-        await deployToApp(deps.client, { appId: configId, appName, root: folderUri.fsPath, restart, message });
+        result = await deployToApp(deps.client, { appId: configId, appName, root: folderUri.fsPath, restart, message });
       } catch (err) {
         deps.showError(err);
         return;
       }
-      afterDeploy(configId, appName);
+      afterDeploy(configId, appName, result, commitContext.imageName);
       await deps.store.pollAfterMutation(configId, "up");
       return;
     }
@@ -247,6 +294,25 @@ export function registerProjectCommands(deps: CommandDeps): void {
       placeHolder: vscode.l10n.t("This folder isn't linked to an application."),
     });
     if (confirm !== createOption) {return;}
+
+    // Atalho: pasta com Dockerfile em plano com imagens. Recusar (ou fechar o aviso) segue o app comum.
+    if (planAllowsImages(deps.store.user)) {
+      const dockerfileRoot = await findDockerfileRoot(folderUri.fsPath);
+      if (dockerfileRoot) {
+        const asImage = vscode.l10n.t("Create a Docker image from this folder");
+        const asApp = vscode.l10n.t("Continue as a regular application");
+        const choice = await vscode.window.showInformationMessage(
+          vscode.l10n.t("This folder has a Dockerfile. Do you want to create a Docker image with it?"),
+          { modal: true, detail: vscode.l10n.t("Several applications can then run from the image. Without it, the application is created from the detected language and the Dockerfile is ignored.") },
+          asImage,
+          asApp,
+        );
+        if (choice === asImage) {
+          await vscode.commands.executeCommand("vertraCloud.images.create", vscode.Uri.file(dockerfileRoot));
+          return;
+        }
+      }
+    }
 
     let values = (await readConfig(folderUri))?.values;
     if (!values?.NAME || !values.MAIN || !values.MEMORY || !values.VERSION) {
