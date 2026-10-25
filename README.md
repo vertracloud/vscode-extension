@@ -127,7 +127,7 @@ Grant only the scopes you use when creating the key.
 | Snapshots | `snapshots:read`, `snapshots:write` |
 | Folders and favorites | `account:write` |
 | Blob Storage | `blob:read` (browse, preview, links), `blob:write` (upload, rename, visibility, delete) |
-| Docker images | `images:read` (list, details, versions, logs, context, Dockerfile check), `images:write` (create, rebuild, delete, GitHub link); creating an application from an image uses `apps:write` |
+| Docker images | `images:read` (list, details, versions, logs, context, Dockerfile check), `images:write` (create, rebuild, GitHub link), `images:delete` (delete; an image with apps also needs `apps:delete`); creating an application from an image uses `apps:write` |
 | Workspaces | `workspaces:read`, `workspaces:write` (+ `workspaces:invites` for invites, `workspaces:delete` to delete a workspace) |
 
 A missing scope shows up as an error naming the scope, with a shortcut to the key management page. The full list is in the [API reference](https://docs.vertracloud.app/api-reference/introduction).
