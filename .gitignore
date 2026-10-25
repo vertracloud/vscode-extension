@@ -9,3 +9,6 @@ AGENT.md
 CLAUDE.md
 .claude/
 .DS_Store
+
+# Segredos locais nunca entram no repositório público.
+.env*
