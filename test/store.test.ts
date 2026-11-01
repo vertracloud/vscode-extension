@@ -15,7 +15,7 @@ function fakeUser(overrides?: Partial<APIUserInfoResponse>): APIUserInfoResponse
     marketing_emails_enabled: true,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
-    plan: { name: "economy", expires_at: "2027-01-01T00:00:00.000Z", duration: 30, memory: { limit: 512, used: 128 } },
+    plan: { name: "starter-1", expires_at: "2027-01-01T00:00:00.000Z", duration: 30, memory: { limit: 512, used: 128 } },
     applications: [
       {
         id: "app1",
@@ -23,7 +23,7 @@ function fakeUser(overrides?: Partial<APIUserInfoResponse>): APIUserInfoResponse
         type: 2,
         name: "my-app",
         owner_id: "1",
-        owner_plan: "economy",
+        owner_plan: "starter-1",
         language: "javascript",
         ram: 256,
         status: "up",

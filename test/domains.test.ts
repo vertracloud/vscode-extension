@@ -49,7 +49,7 @@ describe("domainLabel", () => {
 
 describe("planLabel", () => {
   it("formats the plan slug", () => {
-    assert.equal(planLabel("pro"), "Pro");
-    assert.equal(planLabel("enterprise-8"), "Enterprise 8");
+    assert.equal(planLabel("pro-4"), "Pro 4");
+    assert.equal(planLabel("enterprise-32"), "Enterprise 32");
   });
 });

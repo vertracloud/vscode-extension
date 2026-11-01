@@ -120,7 +120,7 @@ describe("commands/databases", () => {
         name: "my-db",
         description: "",
         owner_id: "u1",
-        owner_plan: "economy",
+        owner_plan: "starter-1",
         status: "up",
         ram: 1024,
         host: "vertra-cloud-postgresql-db-1.vertraweb.app",
