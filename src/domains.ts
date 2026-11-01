@@ -1,4 +1,4 @@
-import type { APIApplicationDomain, UserPlanName } from "@vertracloud/api-types/v1";
+import type { APIApplicationDomain, PlanName } from "@vertracloud/api-types/v1";
 
 export function primaryDomain(domains: readonly APIApplicationDomain[] | undefined): APIApplicationDomain | undefined {
   return domains?.find((d) => d.companion_of === null && d.redirect_to === null);
@@ -9,7 +9,7 @@ export function domainLabel(domain: APIApplicationDomain): string {
   return `${domain.hostname}${port}${domain.path_prefix ?? ""}`;
 }
 
-export function planLabel(name: UserPlanName): string {
+export function planLabel(name: PlanName): string {
   const [head = "", size] = name.split("-");
   const base = head.charAt(0).toUpperCase() + head.slice(1);
   return size ? `${base} ${size}` : base;
