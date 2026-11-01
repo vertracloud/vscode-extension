@@ -3,7 +3,7 @@ import { describe, it } from "vitest";
 import { planLabel } from "../src/domains";
 
 describe("planLabel", () => {
-  it("turns the plan slugs of the current grid into readable names", () => {
+  it("turns plan slugs into readable names", () => {
     assert.equal(planLabel("starter-1"), "Starter 1");
     assert.equal(planLabel("starter-2"), "Starter 2");
     assert.equal(planLabel("pro-4"), "Pro 4");

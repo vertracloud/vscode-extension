@@ -81,7 +81,6 @@ afterEach(async () => {
 
 const limits = (max_custom_images: number) => ({ max_custom_images });
 const catalog = {
-  grid: "v3",
   cycles: [],
   plans: [
     { name: "starter-2", limits: limits(0) },
