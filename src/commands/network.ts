@@ -43,7 +43,7 @@ async function publish(deps: CommandDeps, arg: unknown): Promise<void> {
 
   const subdomain = await vscode.window.showInputBox({
     prompt: vscode.l10n.t("Subdomain (optional)"),
-    placeHolder: vscode.l10n.t("Leave empty to get a random subdomain on the Pro plan"),
+    placeHolder: vscode.l10n.t("Leave empty to get a random subdomain"),
     validateInput: (value) => {
       if (value.length === 0) {return undefined;}
       if (value.length < 3 || value.length > 50 || !SUBDOMAIN_PATTERN.test(value)) {

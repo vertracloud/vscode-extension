@@ -10,6 +10,7 @@ import { register } from "./index";
 import { downloadApp } from "../api/snapshots";
 import { getImage } from "../api/images";
 import { isImageApp, summarizeImageCommit } from "../images/app";
+import { getPlansCatalog } from "../api/plans";
 import { findDockerfileRoot, planAllowsImages } from "../images/dockerfile";
 import type { AppEntry } from "../state";
 import { extractInto } from "../deploy/pull";
@@ -296,7 +297,7 @@ export function registerProjectCommands(deps: CommandDeps): void {
     if (confirm !== createOption) {return;}
 
     // Atalho: pasta com Dockerfile em plano com imagens. Recusar (ou fechar o aviso) segue o app comum.
-    if (planAllowsImages(deps.store.user)) {
+    if (await planAllowsImages(deps.store.user, () => getPlansCatalog(deps.client))) {
       const dockerfileRoot = await findDockerfileRoot(folderUri.fsPath);
       if (dockerfileRoot) {
         const asImage = vscode.l10n.t("Create a Docker image from this folder");

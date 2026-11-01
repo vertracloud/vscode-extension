@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, it, vi } from "vitest";
 import * as vscode from "vscode";
 import { FakeMemento, registeredCommands, Uri } from "./vscode-mock";
+import { getPlansCatalog, resetPlansCache } from "../src/api/plans";
 import { findDockerfileRoot, planAllowsImages } from "../src/images/dockerfile";
 import { registerProjectCommands } from "../src/commands/project";
 import type { CommandDeps } from "../src/commands/deps";
@@ -33,7 +34,7 @@ const CONFIG = "NAME=demo\nMAIN=index.js\nMEMORY=256\nVERSION=recommended\n";
 
 function fakeDeps(planName: string | undefined): CommandDeps {
   return {
-    client: { request: async () => ({}) },
+    client: { request: async (path: string) => (path === "/v1/plans" ? catalog : {}) },
     showError: (err: unknown) => {
       throw err;
     },
@@ -68,6 +69,7 @@ async function deployFolder(root: string, planName: string | undefined, answer: 
 }
 
 beforeEach(() => {
+  resetPlansCache();
   registeredCommands.clear();
   createAppFromFolder.mockClear();
 });
@@ -77,12 +79,52 @@ afterEach(async () => {
   await Promise.all(created.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
+const limits = (max_custom_images: number) => ({ max_custom_images });
+const catalog = {
+  grid: "v3",
+  cycles: [],
+  plans: [
+    { name: "starter-2", limits: limits(0) },
+    { name: "pro-2", limits: limits(2) },
+    { name: "business-6", limits: limits(6) },
+    { name: "enterprise-20", limits: limits(20) },
+  ],
+} as never;
+
 describe("planAllowsImages", () => {
-  it("is true only for the Enterprise tiers that can build images", () => {
-    for (const name of ["enterprise-28", "enterprise-30", "enterprise-32"]) {assert.equal(planAllowsImages({ plan: { name } } as never), true, name);}
-    for (const name of ["economy", "pro-8", "enterprise-26"]) {assert.equal(planAllowsImages({ plan: { name } } as never), false, name);}
-    assert.equal(planAllowsImages({ plan: null } as never), false);
-    assert.equal(planAllowsImages(undefined), false);
+  it("follows max_custom_images in the catalog, not a list of plan names", async () => {
+    const load = async () => catalog;
+    for (const name of ["pro-2", "business-6", "enterprise-20"]) {assert.equal(await planAllowsImages({ plan: { name } } as never, load), true, name);}
+    assert.equal(await planAllowsImages({ plan: { name: "starter-2" } } as never, load), false);
+  });
+
+  it("is false without a plan or user, and does not even load the catalog", async () => {
+    const load = vi.fn(async () => catalog);
+    assert.equal(await planAllowsImages({ plan: null } as never, load), false);
+    assert.equal(await planAllowsImages(undefined, load), false);
+    assert.equal(load.mock.calls.length, 0);
+  });
+
+  it("leaves the decision to the api when the route fails or does not know the plan", async () => {
+    const fail = async () => {
+      throw new Error("offline");
+    };
+    assert.equal(await planAllowsImages({ plan: { name: "pro-2" } } as never, fail), true);
+    assert.equal(await planAllowsImages({ plan: { name: "old-plan" } } as never, async () => catalog), true);
+  });
+});
+
+describe("getPlansCatalog", () => {
+  it("reads the public route once per session and retries after a failure", async () => {
+    resetPlansCache();
+    const request = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValue(catalog);
+    const client = { request } as never;
+    await assert.rejects(getPlansCatalog(client));
+    assert.equal(await getPlansCatalog(client), catalog);
+    assert.equal(await getPlansCatalog(client), catalog);
+    assert.equal(request.mock.calls.length, 2);
+    assert.deepEqual(request.mock.calls[0], ["/v1/plans", { anonymous: true }]);
+    resetPlansCache();
   });
 });
 
@@ -108,7 +150,7 @@ describe("findDockerfileRoot", () => {
 describe("deploy of a new app from a folder with a Dockerfile", () => {
   it("offers the Docker image on a plan with images and opens the image flow with that folder when accepted", async () => {
     const root = await makeFolder({ Dockerfile: "FROM scratch\n", "vertracloud.config": CONFIG });
-    const r = await deployFolder(root, "enterprise-28", "image");
+    const r = await deployFolder(root, "enterprise-20", "image");
     assert.equal(r.prompts.filter((p) => p.items.some((i) => /Docker image/i.test(i))).length, 1);
     assert.equal(r.imageCalls.length, 1);
     const arg = r.imageCalls[0][0] as { fsPath: string };
@@ -119,16 +161,16 @@ describe("deploy of a new app from a folder with a Dockerfile", () => {
   it("passes the single root folder, not the parent, to the image flow", async () => {
     const root = await makeFolder({ "proj/Dockerfile": "FROM scratch\n", "vertracloud.config": CONFIG });
     // two root entries: not a single root folder, so nothing is offered
-    const r = await deployFolder(root, "enterprise-28", "image");
+    const r = await deployFolder(root, "enterprise-20", "image");
     assert.equal(r.imageCalls.length, 0);
     const only = await makeFolder({ "proj/Dockerfile": "FROM scratch\n" });
-    const r2 = await deployFolder(only, "enterprise-28", "image");
+    const r2 = await deployFolder(only, "enterprise-20", "image");
     assert.equal((r2.imageCalls[0][0] as { fsPath: string }).fsPath, path.join(only, "proj"));
   });
 
   it("keeps the regular application flow when the offer is declined", async () => {
     const root = await makeFolder({ Dockerfile: "FROM scratch\n", "vertracloud.config": CONFIG });
-    const r = await deployFolder(root, "enterprise-30", "app");
+    const r = await deployFolder(root, "business-6", "app");
     assert.equal(r.prompts.length >= 1, true);
     assert.equal(r.imageCalls.length, 0);
     assert.equal(createAppFromFolder.mock.calls.length, 1);
@@ -136,14 +178,14 @@ describe("deploy of a new app from a folder with a Dockerfile", () => {
 
   it("does not offer anything without a Dockerfile", async () => {
     const root = await makeFolder({ "index.js": "x", "vertracloud.config": CONFIG });
-    const r = await deployFolder(root, "enterprise-32", "image");
+    const r = await deployFolder(root, "pro-2", "image");
     assert.ok(!r.prompts.some((p) => p.items.some((i) => /Docker image/i.test(i))));
     assert.equal(r.imageCalls.length, 0);
     assert.equal(createAppFromFolder.mock.calls.length, 1);
   });
 
   it("does not offer anything when the plan has no images or the plan is unknown", async () => {
-    for (const plan of ["pro-8", undefined]) {
+    for (const plan of ["starter-2", undefined]) {
       registeredCommands.clear();
       createAppFromFolder.mockClear();
       const root = await makeFolder({ Dockerfile: "FROM scratch\n", "vertracloud.config": CONFIG });

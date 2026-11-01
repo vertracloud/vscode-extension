@@ -1,17 +1,24 @@
 import { promises as fs } from "node:fs";
 import * as path from "node:path";
-import type { APIUserInfoResponse } from "@vertracloud/api-types/v1";
+import type { APIPlansCatalog, APIUserInfoResponse } from "@vertracloud/api-types/v1";
 
 /**
- * Planos que criam imagem própria (`max_custom_images > 0`). O payload do usuário não traz a flag: a lista é a
- * mesma que o texto da view de imagens anuncia para o estado vazio (Enterprise 28, 30 e 32).
+ * O plano da conta cria imagem própria quando `limits.max_custom_images > 0` no catálogo de `GET /v1/plans`.
+ * `false` sem plano ou sem o usuário carregado. Se a rota falha ou não conhece o plano, `true`: quem decide é a api,
+ * que responde `PLAN_DOES_NOT_SUPPORT_CUSTOM_IMAGES`.
  */
-const PLANS_WITH_IMAGES = new Set(["enterprise-28", "enterprise-30", "enterprise-32"]);
-
-/** `false` sem plano ou sem o usuário carregado: sem o sinal, nada é oferecido. */
-export function planAllowsImages(user: Pick<APIUserInfoResponse, "plan"> | undefined): boolean {
+export async function planAllowsImages(
+  user: Pick<APIUserInfoResponse, "plan"> | undefined,
+  loadCatalog: () => Promise<APIPlansCatalog>,
+): Promise<boolean> {
   const name = user?.plan?.name;
-  return typeof name === "string" && PLANS_WITH_IMAGES.has(name);
+  if (typeof name !== "string") {return false;}
+  try {
+    const plan = (await loadCatalog()).plans.find((p) => p.name === name);
+    return plan ? plan.limits.max_custom_images > 0 : true;
+  } catch {
+    return true;
+  }
 }
 
 async function hasDockerfile(dir: string): Promise<boolean> {

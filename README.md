@@ -61,7 +61,7 @@ Create databases, start and stop them, edit their name and memory, view metrics,
 
 ### Docker images
 
-The **Docker Images** view lists your custom images with the status of the latest build (building, ready or failed), the reason when a build failed, and the applications that run from each one. The images of a workspace appear under that workspace. Custom images are available on Enterprise 28, 30 and 32; on other plans the view stays empty and creating one tells you why. The full guide is at [docs.vertracloud.app/guides/custom-docker-images](https://docs.vertracloud.app/guides/custom-docker-images).
+The **Docker Images** view lists your custom images with the status of the latest build (building, ready or failed), the reason when a build failed, and the applications that run from each one. The images of a workspace appear under that workspace. Custom images are available on the plans that include them; on other plans the view stays empty and creating one tells you why. The full guide is at [docs.vertracloud.app/guides/custom-docker-images](https://docs.vertracloud.app/guides/custom-docker-images).
 
 - **Create Docker image** takes a folder (from the Command Palette, or right-click a folder in the Explorer) or a GitHub repository and branch. A folder needs a file named exactly `Dockerfile` at its root. It is zipped like the Vertra CLI does it: `.dockerignore` is respected, `.env*` files and symbolic links never leave your computer, and the extension stops before uploading anything over 100 MB (or over 512 MB uncompressed or 50,000 files).
 - **Checked before building**: the Dockerfile is checked first. Refusals are listed with their line and stop the build; warnings (for example a `WORKDIR` under `/app`) ask you to confirm.
@@ -81,7 +81,7 @@ For an application that runs from an image:
 
 ### Rollbacks
 
-**Rollbacks...** on an application lists its versions with status, author and date. Pick one to roll back to it (with the option to bring back that version's environment variables, after showing which names would change), view the log of a version that crashed, or copy its ID. Rolling back needs the Pro plan or above.
+**Rollbacks...** on an application lists its versions with status, author and date. Pick one to roll back to it (with the option to bring back that version's environment variables, after showing which names would change), view the log of a version that crashed, or copy its ID. Rolling back is available on every plan.
 
 ### Snapshots
 

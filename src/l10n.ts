@@ -120,7 +120,7 @@ export function describeError(err: ApiErrorLike): string {
     case "APP_SHIELD_COOLDOWN":
       return vscode.l10n.t("This application is in cooldown after a network incident.");
     case "PLAN_DOES_NOT_SUPPORT_CUSTOM_IMAGES":
-      return vscode.l10n.t("Custom Docker images are available on Enterprise 28, 30 and 32.");
+      return vscode.l10n.t("Custom Docker images are available on plans that include them.");
     case "MAX_IMAGES_REACHED":
       return vscode.l10n.t("You reached your plan's limit of Docker images. Delete one to create another.");
     case "DOCKERFILE_NOT_FOUND":

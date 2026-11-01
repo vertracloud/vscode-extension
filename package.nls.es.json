@@ -91,7 +91,7 @@
   "cmd.vertraCloud.blob.delete": "Blob: Eliminar",
   "config.blob.baseUrl": "URL base de la API de Blob Storage.",
   "view.images": "Imágenes Docker",
-  "welcome.images.empty": "Aún no tienes imágenes Docker. Las imágenes personalizadas están disponibles en Enterprise 28, 30 y 32: envía una carpeta con un Dockerfile o vincula un repositorio de GitHub.\n\n[Crear imagen](command:vertraCloud.images.create)",
+  "welcome.images.empty": "Aún no tienes imágenes Docker. Las imágenes personalizadas están disponibles en los planes que las incluyen: envía una carpeta con un Dockerfile o vincula un repositorio de GitHub.\n\n[Crear imagen](command:vertraCloud.images.create)",
   "cmd.vertraCloud.images.refresh": "Imágenes Docker: Actualizar",
   "cmd.vertraCloud.images.create": "Crear imagen Docker",
   "cmd.vertraCloud.images.rename": "Renombrar imagen Docker",

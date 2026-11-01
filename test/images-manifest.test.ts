@@ -31,7 +31,7 @@ describe("Docker images contribution", () => {
     assert.ok(welcome);
     assert.equal(welcome.contents, "%welcome.images.empty%");
     assert.match((nls as Record<string, string>)["welcome.images.empty"], /command:vertraCloud\.images\.create/);
-    assert.match((nls as Record<string, string>)["welcome.images.empty"], /Enterprise 28, 30 and 32/);
+    assert.match((nls as Record<string, string>)["welcome.images.empty"], /plans that include them/);
   });
 
   const menu = (id: string): MenuEntry[] => (pkg.contributes.menus["view/item/context"] as MenuEntry[]).filter((e) => e.command === id);
