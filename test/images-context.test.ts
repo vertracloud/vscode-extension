@@ -186,7 +186,7 @@ describe("contextFileList", () => {
 });
 
 describe("packImageContext", () => {
-  it("keeps the executable bit, which a COPY'd entrypoint script needs", async () => {
+  it.skipIf(process.platform === "win32")("keeps the executable bit, which a COPY'd entrypoint script needs", async () => {
     await write("Dockerfile", "FROM scratch\n");
     await write("run.sh", "#!/bin/sh\n");
     await fs.chmod(path.join(root, "run.sh"), 0o755);
