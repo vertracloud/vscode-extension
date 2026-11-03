@@ -43,6 +43,20 @@ export function describeError(err: ApiErrorLike): string {
       return vscode.l10n.t("Your plan doesn't support publishing to the web.");
     case "PLAN_DOES_NOT_SUPPORT_CUSTOM_SUBDOMAIN":
       return vscode.l10n.t("Your plan doesn't support a custom subdomain.");
+    case "PLAN_DOES_NOT_SUPPORT_WEB_ANALYTICS_PERFORMANCE":
+      return vscode.l10n.t("Your plan doesn't include performance (edge and container latency).");
+    case "PLAN_DOES_NOT_SUPPORT_WEB_ANALYTICS_REQUESTS":
+      return vscode.l10n.t("Your plan doesn't include the request log.");
+    case "ANALYTICS_RANGE_EXCEEDS_PLAN": {
+      const d = err.details && typeof err.details === "object" ? (err.details as { history_days?: unknown; earliest?: unknown }) : undefined;
+      return typeof d?.history_days === "number" && typeof d.earliest === "string"
+        ? vscode.l10n.t("Your plan reads {0} days back: start no earlier than {1}.", d.history_days, d.earliest.slice(0, 10))
+        : vscode.l10n.t("The window starts before the history your plan allows. Use a more recent start.");
+    }
+    case "ANALYTICS_BUSY":
+      return vscode.l10n.t("Analytics is busy right now. Try again in a moment.") + retry;
+    case "INVALID_RANGE":
+      return vscode.l10n.t("Invalid window: at most 30 days, with the end after the start.");
     case "PLAN_REQUIRED":
       return vscode.l10n.t("A plan is required for this action. Choose a plan to continue.");
     case "INVALID_DATABASE_VERSION":

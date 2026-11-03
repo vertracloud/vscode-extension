@@ -38,6 +38,7 @@ import { registerWorkspacesCommands } from "./commands/workspaces";
 import { registerOrganizationCommands } from "./commands/organization";
 import { registerNetworkCommands } from "./commands/network";
 import { registerAppsExtraCommands } from "./commands/apps-extra";
+import { registerAnalyticsCommands } from "./commands/analytics";
 import { registerReleasesCommands } from "./commands/releases";
 import { registerBlob } from "./blob/commands";
 import { registerImages } from "./images/commands";
@@ -124,6 +125,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<{
   registerNetworkCommands(deps);
   registerAppsExtraCommands(deps);
   registerReleasesCommands(deps);
+  registerAnalyticsCommands(deps);
   registerBlob(deps);
   registerImages(deps);
 

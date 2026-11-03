@@ -6,7 +6,7 @@ import type { ApiClient } from "../api/client";
 import { isImageApp } from "../images/app";
 import type { CommandDeps } from "./deps";
 
-/** Só os campos que `app.editConfig` edita (subconjunto de `UpdateAppConfigBodySchema`, api/src/@types/app.ts). */
+/** Só os campos que `app.editConfig` edita (subconjunto do corpo de atualização de configuração do app). */
 type ConfigPatch =
   | { field: "name"; value: string }
   | { field: "description"; value: string | null }

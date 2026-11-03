@@ -214,6 +214,36 @@
         "icon": "$(discard)"
       },
       {
+        "command": "vertraCloud.app.analytics",
+        "title": "%cmd.vertraCloud.app.analytics%",
+        "category": "Vertra Cloud",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "vertraCloud.app.analytics.summary",
+        "title": "%cmd.vertraCloud.app.analytics.summary%",
+        "category": "Vertra Cloud",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "vertraCloud.app.analytics.performance",
+        "title": "%cmd.vertraCloud.app.analytics.performance%",
+        "category": "Vertra Cloud",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "vertraCloud.app.analytics.errors",
+        "title": "%cmd.vertraCloud.app.analytics.errors%",
+        "category": "Vertra Cloud",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "vertraCloud.app.analytics.requests",
+        "title": "%cmd.vertraCloud.app.analytics.requests%",
+        "category": "Vertra Cloud",
+        "icon": "$(graph)"
+      },
+      {
         "command": "vertraCloud.app.openRemoteFiles",
         "title": "%cmd.vertraCloud.app.openRemoteFiles%",
         "category": "Vertra Cloud",
@@ -992,6 +1022,11 @@
           "group": "4_manage"
         },
         {
+          "command": "vertraCloud.app.analytics",
+          "when": "viewItem =~ /^app:/",
+          "group": "4_manage"
+        },
+        {
           "command": "vertraCloud.app.editConfig",
           "when": "viewItem =~ /^app:/",
           "group": "4_manage"
@@ -1440,7 +1475,7 @@
     "@types/vscode": "^1.85.0",
     "@types/yauzl": "^3.4.0",
     "@types/yazl": "^3.3.1",
-    "@vertracloud/api-types": "0.6.0",
+    "@vertracloud/api-types": "0.6.1",
     "@vertracloud/blob": "0.1.4",
     "@vscode/l10n-dev": "^0.0.35",
     "@vscode/vsce": "^4.0.0",

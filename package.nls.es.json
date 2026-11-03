@@ -103,5 +103,10 @@
   "cmd.vertraCloud.images.linkGithub": "Vincular imagen Docker a GitHub",
   "cmd.vertraCloud.images.unlinkGithub": "Desvincular imagen Docker de GitHub",
   "cmd.vertraCloud.images.delete": "Eliminar imagen Docker",
-  "cmd.vertraCloud.images.createApp": "Crear aplicación desde una imagen Docker"
+  "cmd.vertraCloud.images.createApp": "Crear aplicación desde una imagen Docker",
+  "cmd.vertraCloud.app.analytics": "Analytics…",
+  "cmd.vertraCloud.app.analytics.summary": "Analytics: Resumen",
+  "cmd.vertraCloud.app.analytics.performance": "Analytics: Rendimiento",
+  "cmd.vertraCloud.app.analytics.errors": "Analytics: Errores",
+  "cmd.vertraCloud.app.analytics.requests": "Analytics: Solicitudes"
 }
