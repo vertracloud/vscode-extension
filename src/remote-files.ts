@@ -309,6 +309,8 @@ export class VertraFileSystemProvider implements vscode.FileSystemProvider {
         return new vscode.FileSystemError(
           vscode.l10n.t("The file changed on Vertra Cloud since it was opened. Reload it before saving."),
         );
+      case "FILE_TOO_LARGE":
+        return new vscode.FileSystemError(message);
       case "FILE_NOT_TEXT":
         return new vscode.FileSystemError(
           vscode.l10n.t("Only UTF-8 text files can be saved to Vertra Cloud. This file is binary."),

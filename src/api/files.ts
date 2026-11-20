@@ -13,6 +13,14 @@ interface Scoped {
   workspaceId?: string;
 }
 
+/** Um 413 sem o corpo da api (resposta de intermediário) chega como `HTTP_413`; aqui vira o mesmo erro. */
+function rethrowTooLarge(error: unknown): never {
+  if (error instanceof ApiError && error.status === 413 && error.code !== "FILE_TOO_LARGE") {
+    throw new ApiError(413, "FILE_TOO_LARGE", error.message, error.details);
+  }
+  throw error;
+}
+
 const scope = (opts?: Scoped) => ({ workspace_id: opts?.workspaceId });
 
 export function listFiles(
@@ -36,10 +44,9 @@ export async function readFile(
   path: string,
   opts?: Scoped,
 ): Promise<RemoteFileContent> {
-  const payload = await client.request<APIApplicationFileContent>(
-    `/v1/apps/${appId}/files/content`,
-    { query: { path, ...scope(opts) } },
-  );
+  const payload = await client
+    .request<APIApplicationFileContent>(`/v1/apps/${appId}/files/content`, { query: { path, ...scope(opts) } })
+    .catch(rethrowTooLarge);
   const bytes = new Uint8Array(Buffer.from(payload.data, "base64"));
   return { bytes, size: payload.size, lastModified: payload.last_modified };
 }
@@ -56,11 +63,13 @@ export function writeFile(
   lastModified?: string,
   opts?: Scoped,
 ): Promise<unknown> {
-  return client.request(`/v1/apps/${appId}/files`, {
-    method: "PUT",
-    query: { path, ...scope(opts) },
-    body: { content: decodeUtf8Text(content), last_modified: lastModified },
-  });
+  return client
+    .request(`/v1/apps/${appId}/files`, {
+      method: "PUT",
+      query: { path, ...scope(opts) },
+      body: { content: decodeUtf8Text(content), last_modified: lastModified },
+    })
+    .catch(rethrowTooLarge);
 }
 
 /**
