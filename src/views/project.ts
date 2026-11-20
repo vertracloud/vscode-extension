@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { Store, AppEntry } from "../state";
 import { statusLabel, formatMegabytes } from "../l10n";
+import { isRestoring } from "../restoring";
 import type { ProjectLink } from "../project/link";
 
 export interface ProjectLinkSource {
@@ -14,9 +15,10 @@ type Node =
   | { kind: "root"; link: ProjectLink }
   | { kind: "info"; link: ProjectLink; field: InfoField };
 
-function effectiveStatus(entry: AppEntry | undefined): "up" | "down" | "installing" | "building" {
+function effectiveStatus(entry: AppEntry | undefined): "up" | "down" | "installing" | "building" | "restoring" {
   if (!entry) {return "down";}
   if (entry.app.status === "building") {return "building";}
+  if (isRestoring(entry.status)) {return "restoring";}
   if (entry.status?.installing) {return "installing";}
   if (entry.status) {return entry.status.running ? "up" : "down";}
   return entry.app.status === "up" ? "up" : "down";
@@ -79,7 +81,7 @@ export class ProjectProvider implements vscode.TreeDataProvider<Node> {
       const status = effectiveStatus(entry);
       item.description = statusLabel(status);
       item.iconPath =
-        status === "installing" || status === "building"
+        status === "installing" || status === "building" || status === "restoring"
           ? new vscode.ThemeIcon("loading~spin")
           : new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor(status === "up" ? "charts.green" : "charts.red"));
     } else {

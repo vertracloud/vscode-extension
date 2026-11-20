@@ -5,6 +5,7 @@ import type { AppEntry, DbEntry, Store } from "../state";
 import type { ProjectLinks } from "../project/link";
 import type { RealtimeManager } from "../realtime";
 import { describeError, statusLabel, type ApiErrorLike } from "../l10n";
+import { isRestoring } from "../restoring";
 import type { CommandDeps } from "./deps";
 
 export const DASHBOARD_URL = "https://vertracloud.app/dashboard";
@@ -55,8 +56,9 @@ export function workspaceIdOf(arg: unknown): string | undefined {
   return undefined;
 }
 
-function appStatus(entry: AppEntry): "up" | "down" | "installing" | "building" {
+function appStatus(entry: AppEntry): "up" | "down" | "installing" | "building" | "restoring" {
   if (entry.app.status === "building") {return "building";}
+  if (isRestoring(entry.status)) {return "restoring";}
   if (entry.status?.installing) {return "installing";}
   if (entry.status) {return entry.status.running ? "up" : "down";}
   return entry.app.status === "up" ? "up" : "down";
@@ -137,7 +139,7 @@ export function createDeps(context: vscode.ExtensionContext, parts: DepsParts): 
     const pick = await vscode.window.showQuickPick(
       entries.map((entry) => ({
         label: entry.db.name,
-        description: `${statusLabel((entry.status?.running ?? entry.db.status === "up") ? "up" : "down")} · ${entry.db.ram}MB`,
+        description: `${statusLabel(isRestoring(entry.status) ? "restoring" : (entry.status?.running ?? entry.db.status === "up") ? "up" : "down")} · ${entry.db.ram}MB`,
         detail: entry.db.id,
         entry,
       })),
@@ -166,10 +168,11 @@ export function createDeps(context: vscode.ExtensionContext, parts: DepsParts): 
     return id ? undefined : pickDatabase();
   };
 
-  const confirmDanger = async (resourceName: string, action: string): Promise<boolean> => {
+  const confirmDanger = async (resourceName: string, action: string, warning?: string): Promise<boolean> => {
+    const typePrompt = vscode.l10n.t("Type {0} to confirm.", resourceName);
     const typed = await vscode.window.showInputBox({
       title: action,
-      prompt: vscode.l10n.t("Type {0} to confirm.", resourceName),
+      prompt: warning ? `${warning} ${typePrompt}` : typePrompt,
       placeHolder: resourceName,
       ignoreFocusOut: true,
       validateInput: (value: string) =>

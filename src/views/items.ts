@@ -3,6 +3,7 @@ import type { WorkspaceFolderColor } from "@vertracloud/api-types/v1";
 import type { AppEntry, DbEntry } from "../state";
 import { primaryDomain } from "../domains";
 import { formatUptime, statusLabel, formatMegabytes } from "../l10n";
+import { isRestoring } from "../restoring";
 
 export type AppInfoField = "status" | "ram" | "cpu" | "uptime" | "domain" | "id";
 export type DbInfoField = "status" | "engine" | "version" | "host" | "ram" | "id";
@@ -11,15 +12,16 @@ export function folderIcon(color: WorkspaceFolderColor | undefined): vscode.Them
   return new vscode.ThemeIcon("folder", color && color !== "neutral" ? new vscode.ThemeColor(`charts.${color}`) : undefined);
 }
 
-export function appEffectiveStatus(entry: AppEntry): "up" | "down" | "installing" | "building" {
+export function appEffectiveStatus(entry: AppEntry): "up" | "down" | "installing" | "building" | "restoring" {
   if (entry.app.status === "building") {return "building";}
+  if (isRestoring(entry.status)) {return "restoring";}
   if (entry.status?.installing) {return "installing";}
   if (entry.status) {return entry.status.running ? "up" : "down";}
   return entry.app.status === "up" ? "up" : "down";
 }
 
-function appIcon(status: "up" | "down" | "installing" | "building"): vscode.ThemeIcon {
-  if (status === "installing" || status === "building") {return new vscode.ThemeIcon("loading~spin");}
+function appIcon(status: "up" | "down" | "installing" | "building" | "restoring"): vscode.ThemeIcon {
+  if (status === "installing" || status === "building" || status === "restoring") {return new vscode.ThemeIcon("loading~spin");}
   if (status === "up") {return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.green"));}
   return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.red"));
 }
@@ -46,7 +48,7 @@ export function appTreeItem(entry: AppEntry): vscode.TreeItem {
   const status = appEffectiveStatus(entry);
   const ramLabel = appRamLabel(entry);
   const item = new vscode.TreeItem(entry.app.name, vscode.TreeItemCollapsibleState.Collapsed);
-  item.description = status === "up" ? ramLabel : status === "installing" || status === "building" ? `${statusLabel(status)} · ${ramLabel}` : statusLabel(status);
+  item.description = status === "up" ? ramLabel : status === "installing" || status === "building" || status === "restoring" ? `${statusLabel(status)} · ${ramLabel}` : statusLabel(status);
   item.iconPath = appIcon(status);
   item.contextValue = appContextValue(entry);
   const tooltip = new vscode.MarkdownString();
@@ -123,16 +125,19 @@ export function appInfoItem(entry: AppEntry, field: AppInfoField): vscode.TreeIt
 
 export function dbTreeItem(entry: DbEntry): vscode.TreeItem {
   const up = entry.status ? entry.status.running : entry.db.status === "up";
+  const restoring = isRestoring(entry.status);
   const item = new vscode.TreeItem(entry.db.name, vscode.TreeItemCollapsibleState.Collapsed);
   const ramLabel = entry.status ? `${entry.status.ram} / ${formatMegabytes(entry.db.ram)}` : `${formatMegabytes(entry.db.ram)}`;
-  item.description = `${entry.db.type} · ${ramLabel}`;
-  item.iconPath = up
+  item.description = restoring ? `${entry.db.type} · ${statusLabel("restoring")} · ${ramLabel}` : `${entry.db.type} · ${ramLabel}`;
+  item.iconPath = restoring
+    ? new vscode.ThemeIcon("loading~spin")
+    : up
     ? new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.green"))
     : new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.red"));
   item.contextValue = `db:${up ? "up" : "down"}${entry.favorite ? ":favorite" : ""}`;
   const tooltip = new vscode.MarkdownString();
   tooltip.appendMarkdown(`**${entry.db.name}**\n\n`);
-  tooltip.appendMarkdown(`- ${vscode.l10n.t("Status")}: ${statusLabel(up ? "up" : "down")}\n`);
+  tooltip.appendMarkdown(`- ${vscode.l10n.t("Status")}: ${statusLabel(restoring ? "restoring" : up ? "up" : "down")}\n`);
   tooltip.appendMarkdown(`- ID: \`${entry.db.id}\`\n`);
   tooltip.appendMarkdown(`- ${vscode.l10n.t("Engine")}: ${entry.db.type}\n`);
   if (entry.db.version) {tooltip.appendMarkdown(`- ${vscode.l10n.t("Version")}: ${entry.db.version}\n`);}

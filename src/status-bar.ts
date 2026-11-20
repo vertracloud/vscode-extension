@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import type { Store } from "./state";
+import { isRestoring } from "./restoring";
 import type { ProjectLinkSource } from "./views/project";
 
 /** Item discreto: só aparece com vínculo de projeto, ou quando o serviço não está saudável. */
@@ -33,6 +34,8 @@ export class StatusBar {
       const label = entry
         ? entry.app.status === "building"
           ? vscode.l10n.t("Building")
+          : isRestoring(entry.status)
+          ? vscode.l10n.t("Restoring")
           : entry.status?.installing
           ? vscode.l10n.t("Installing")
           : entry.status
