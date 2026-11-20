@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "vitest";
 import yazl from "yazl";
-import { extractInto } from "../src/deploy/pull";
+import { extractFileInto, extractInto } from "../src/deploy/pull";
 
 function zipOf(entries: Record<string, string>): Promise<Buffer> {
   const zip = new yazl.ZipFile();
@@ -41,6 +41,29 @@ describe("extractInto", () => {
     await assert.rejects(fs.stat(path.join(root, ".vertracloud")));
     assert.equal(await fs.readFile(path.join(root, "vertracloud.config"), "utf8"), "ID=app-1\n");
     assert.deepEqual(result, { written: 2, skipped: 3 });
+    await fs.rm(root, { recursive: true, force: true });
+  });
+});
+
+describe("extractFileInto", () => {
+  it("extracts from a zip on disk with the same rules", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vertra-pull-"));
+    const zipPath = path.join(root, "..", `${path.basename(root)}.zip`);
+    await fs.writeFile(zipPath, await zipOf({ "index.js": "new", "src/app.js": "app", "node_modules/x.js": "dep" }));
+    const result = await extractFileInto(zipPath, root);
+    assert.equal(await fs.readFile(path.join(root, "src", "app.js"), "utf8"), "app");
+    assert.equal(await fs.readFile(path.join(root, "index.js"), "utf8"), "new");
+    assert.deepEqual(result, { written: 2, skipped: 1 });
+    await fs.rm(root, { recursive: true, force: true });
+    await fs.rm(zipPath, { force: true });
+  });
+
+  it("a zip that is not a zip fails and writes nothing", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "vertra-pull-"));
+    const zipPath = path.join(root, "bad.zip");
+    await fs.writeFile(zipPath, "not a zip");
+    await assert.rejects(extractFileInto(zipPath, root));
+    assert.deepEqual(await fs.readdir(root), ["bad.zip"]);
     await fs.rm(root, { recursive: true, force: true });
   });
 });

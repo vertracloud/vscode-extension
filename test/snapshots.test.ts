@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "vitest";
 import * as vscodeMock from "./vscode-mock";
 import { registerSnapshotsCommands } from "../src/commands/snapshots";
@@ -9,7 +12,6 @@ function fakeSnapshot(overrides?: Partial<APIResourceSnapshot>): APIResourceSnap
   return {
     id: "snap1",
     resource_id: "app1",
-    author_id: "user1",
     resource_type: 1,
     size: "1024",
     date: "2026-09-01T10:00:00.000Z",
@@ -33,10 +35,15 @@ function makeDeps(opts: {
   const polled: string[] = [];
 
   const client = {
-    request: async (path: string, requestOpts?: { method?: string; query?: Record<string, unknown> }) => {
+    request: async (path: string, requestOpts?: { method?: string; query?: Record<string, unknown>; sink?: (chunk: Uint8Array) => Promise<void> }) => {
       const call: RequestCall = { path, method: requestOpts?.method, query: requestOpts?.query };
       calls.push(call);
-      return opts.onRequest(call);
+      const answer = opts.onRequest(call);
+      if (requestOpts?.sink && answer instanceof ArrayBuffer) {
+        await requestOpts.sink(new Uint8Array(answer));
+        return undefined;
+      }
+      return answer;
     },
   };
 
@@ -123,7 +130,7 @@ test("restore without confirmation never calls the restore API", async () => {
   assert.equal(restoreCall, undefined);
 });
 
-test("download writes the buffer to the chosen path", async () => {
+test("download streams the snapshot to the chosen path", async () => {
   lastError = undefined;
   const snapshot = fakeSnapshot();
   const buffer = new TextEncoder().encode("zip-content").buffer;
@@ -140,20 +147,16 @@ test("download writes the buffer to the chosen path", async () => {
     return items.find((item) => item === "Download" || (typeof item !== "string" && item.label === "Download"));
   }) as unknown as typeof vscodeMock.window.showQuickPick;
 
-  const targetUri = vscodeMock.Uri.file("/tmp/out/my-app-2026-09-01.zip");
+  const dir = await mkdtemp(join(tmpdir(), "vertra-ext-snap-"));
+  const targetUri = vscodeMock.Uri.file(join(dir, "my-app-2026-09-01.zip"));
   vscodeMock.window.showSaveDialog = (async () => targetUri) as unknown as typeof vscodeMock.window.showSaveDialog;
   vscodeMock.workspace.workspaceFolders = undefined;
   vscodeMock.workspace.isTrusted = true;
-  let written: { uri: unknown; content: Uint8Array } | undefined;
-  vscodeMock.workspace.fs.writeFile = async (uri: unknown, content: Uint8Array) => {
-    written = { uri, content };
-  };
 
   await runCommand(deps, "vertraCloud.app.manageSnapshots");
 
-  assert.ok(written);
-  assert.equal(written?.uri, targetUri);
-  assert.equal(Buffer.from(written!.content).toString(), "zip-content");
+  assert.equal(await readFile(join(dir, "my-app-2026-09-01.zip"), "utf8"), "zip-content");
+  assert.deepEqual(await readdir(dir), ["my-app-2026-09-01.zip"]);
 });
 
 test("untrusted workspace with destination inside it refuses without writing", async () => {
@@ -206,4 +209,44 @@ test("PLAN_NOT_ALLOWED from create goes to showError", async () => {
   await runCommand(deps, "vertraCloud.app.manageSnapshots");
   assert.equal((calls.find((c) => c.method === "POST") ? true : false), true);
   assert.equal((lastError as { code?: string } | undefined)?.code, "PLAN_NOT_ALLOWED");
+});
+
+test("restore follows the job until ready and reports success", async () => {
+  lastError = undefined;
+  const snapshot = fakeSnapshot();
+  const jobs = [{ id: "j1", status: "running" }, { id: "j1", status: "ready" }];
+  const { deps, calls } = makeDeps({
+    onRequest: (call) => {
+      if (call.path.endsWith("/restore")) {return { job_id: "j1" };}
+      if (call.path.includes("/snapshots/jobs/")) {return jobs.shift();}
+      return (call.method ?? "GET") === "GET" ? [snapshot] : undefined;
+    },
+  });
+  vscodeMock.window.showQuickPick = (async (items: Array<{ label: string; snapshot?: unknown } | string>) => {
+    const withSnapshot = items.find((item) => typeof item !== "string" && item.snapshot);
+    if (withSnapshot) {return withSnapshot;}
+    return items.find((item) => item === "Restore" || (typeof item !== "string" && item.label === "Restore"));
+  }) as unknown as typeof vscodeMock.window.showQuickPick;
+  await runCommand(deps, "vertraCloud.app.manageSnapshots");
+  assert.equal(lastError, undefined);
+  assert.equal(calls.filter((c) => c.path === "/v1/users/app1/snapshots/jobs/j1").length, 2);
+});
+
+test("restore whose job fails goes to showError with the public reason", async () => {
+  lastError = undefined;
+  const snapshot = fakeSnapshot();
+  const { deps } = makeDeps({
+    onRequest: (call) => {
+      if (call.path.endsWith("/restore")) {return { job_id: "j1" };}
+      if (call.path.includes("/snapshots/jobs/")) {return { id: "j1", status: "failed", reason: "SNAPSHOT_CORRUPTED" };}
+      return (call.method ?? "GET") === "GET" ? [snapshot] : undefined;
+    },
+  });
+  vscodeMock.window.showQuickPick = (async (items: Array<{ label: string; snapshot?: unknown } | string>) => {
+    const withSnapshot = items.find((item) => typeof item !== "string" && item.snapshot);
+    if (withSnapshot) {return withSnapshot;}
+    return items.find((item) => item === "Restore" || (typeof item !== "string" && item.label === "Restore"));
+  }) as unknown as typeof vscodeMock.window.showQuickPick;
+  await runCommand(deps, "vertraCloud.app.manageSnapshots");
+  assert.equal((lastError as { code?: string } | undefined)?.code, "SNAPSHOT_CORRUPTED");
 });

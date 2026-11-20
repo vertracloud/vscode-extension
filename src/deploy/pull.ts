@@ -1,5 +1,7 @@
+import { createWriteStream } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { pipeline } from "node:stream/promises";
 import yauzl from "yauzl";
 import { DEFAULT_IGNORE } from "./ignore";
 
@@ -24,13 +26,19 @@ function safeTarget(root: string, entryName: string): string | undefined {
   return target;
 }
 
-/** Writes every safe entry of the zip into `root`, leaving files that are not in the zip alone. */
-export function extractInto(zipBuffer: Buffer, root: string): Promise<PullResult> {
+function extractZip(
+  open: (callback: (error: Error | null, zip?: yauzl.ZipFile) => void) => void,
+  root: string,
+): Promise<PullResult> {
   return new Promise((resolve, reject) => {
-    yauzl.fromBuffer(zipBuffer, { lazyEntries: true }, (openError, zip) => {
+    open((openError, zip) => {
       if (openError || !zip) {return reject(openError ?? new Error("INVALID_ZIP"));}
       const result: PullResult = { written: 0, skipped: 0 };
-      zip.on("error", reject);
+      const fail = (error: Error): void => {
+        zip.close();
+        reject(error);
+      };
+      zip.on("error", fail);
       zip.on("end", () => resolve(result));
       zip.on("entry", (entry: yauzl.Entry) => {
         const target = safeTarget(root, entry.fileName);
@@ -39,25 +47,31 @@ export function extractInto(zipBuffer: Buffer, root: string): Promise<PullResult
           return zip.readEntry();
         }
         if (entry.fileName.endsWith("/")) {
-          fs.mkdir(target, { recursive: true }).then(() => zip.readEntry(), reject);
+          fs.mkdir(target, { recursive: true }).then(() => zip.readEntry(), fail);
           return;
         }
         zip.openReadStream(entry, (streamError, stream) => {
-          if (streamError || !stream) {return reject(streamError ?? new Error("INVALID_ZIP"));}
-          const chunks: Buffer[] = [];
-          stream.on("data", (chunk: Buffer) => chunks.push(chunk));
-          stream.on("error", reject);
-          stream.on("end", () => {
-            fs.mkdir(path.dirname(target), { recursive: true })
-              .then(() => fs.writeFile(target, Buffer.concat(chunks)))
-              .then(() => {
-                result.written++;
-                zip.readEntry();
-              }, reject);
-          });
+          if (streamError || !stream) {return fail(streamError ?? new Error("INVALID_ZIP"));}
+          // Cada arquivo vai do zip ao disco em fluxo: um arquivo grande não passa inteiro pela memória.
+          fs.mkdir(path.dirname(target), { recursive: true })
+            .then(() => pipeline(stream, createWriteStream(target)))
+            .then(() => {
+              result.written++;
+              zip.readEntry();
+            }, fail);
         });
       });
       zip.readEntry();
     });
   });
+}
+
+/** Writes every safe entry of the zip into `root`, leaving files that are not in the zip alone. */
+export function extractInto(zipBuffer: Buffer, root: string): Promise<PullResult> {
+  return extractZip((callback) => yauzl.fromBuffer(zipBuffer, { lazyEntries: true }, callback), root);
+}
+
+/** Same as `extractInto`, reading the zip from a file on disk: the zip itself never sits in memory. */
+export function extractFileInto(zipPath: string, root: string): Promise<PullResult> {
+  return extractZip((callback) => yauzl.open(zipPath, { lazyEntries: true, autoClose: true }, callback), root);
 }

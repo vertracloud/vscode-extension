@@ -2,13 +2,17 @@ import * as vscode from "vscode";
 import type { APIResourceSnapshot } from "@vertracloud/api-types/v1";
 import { formatBytes } from "../l10n";
 import {
+  chooseSaveTarget,
   createSnapshot,
-  downloadSnapshot,
+  downloadSnapshotToFile,
+  downloadToTarget,
+  isSnapshotCreateAccepted,
   listSnapshots,
   restoreSnapshot,
-  saveBufferInteractive,
   type SnapshotScope,
+  waitForSnapshotJob,
 } from "../api/snapshots";
+import { ApiError } from "../api/client";
 import { isImageApp } from "../images/app";
 import type { CommandDeps } from "./deps";
 
@@ -59,8 +63,13 @@ async function pickSnapshot(
   if (!picked) {return undefined;}
   if (!picked.snapshot) {
     try {
-      await createSnapshot(deps.client, resource.id, scope);
-      void vscode.window.showInformationMessage(vscode.l10n.t("Snapshot created."));
+      const created = await createSnapshot(deps.client, resource.id, scope);
+      // 202 `{ response: { job_id } }`: não é erro, o snapshot ainda está sendo tirado e entra na lista quando ficar pronto.
+      void vscode.window.showInformationMessage(
+        isSnapshotCreateAccepted(created)
+          ? vscode.l10n.t("The snapshot is still being taken. It will show up in the list when it is ready.")
+          : vscode.l10n.t("Snapshot created."),
+      );
     } catch (err) {
       deps.showError(err);
     }
@@ -83,14 +92,13 @@ async function handleSnapshot(
   if (!action) {return;}
 
   if (action === downloadLabel) {
+    const destination = await chooseSaveTarget(`${resource.name}-${snapshot.date.slice(0, 10)}.zip`);
+    if (!destination) {return;}
     try {
       await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Downloading snapshot...") },
-        async () => {
-          const buffer = await downloadSnapshot(deps.client, resource.id, snapshot.id, scope);
-          const suggested = `${resource.name}-${snapshot.date.slice(0, 10)}.zip`;
-          await saveBufferInteractive(buffer, suggested);
-        },
+        { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Downloading snapshot..."), cancellable: true },
+        (_progress, token) =>
+          downloadToTarget(destination, (dest) => downloadSnapshotToFile(deps.client, resource.id, snapshot.id, scope, dest, token)),
       );
     } catch (err) {
       deps.showError(err);
@@ -98,7 +106,7 @@ async function handleSnapshot(
     return;
   }
 
-  const confirmed = await deps.confirmDanger(resource.name, restoreLabel);
+  const confirmed = await deps.confirmDanger(resource.name, restoreLabel, vscode.l10n.t("The current data will be replaced and this can't be undone. To keep a copy, create a snapshot first."));
   if (!confirmed) {return;}
 
   let restoreImageVersion = false;
@@ -114,15 +122,20 @@ async function handleSnapshot(
   }
 
   try {
-    const result = await restoreSnapshot(deps.client, resource.id, snapshot.id, scope, { restoreImageVersion });
-    void vscode.window.showInformationMessage(
-      result?.message || vscode.l10n.t("Snapshot restore started for {0}.", resource.name),
-    );
-    if (result?.warning === "IMAGE_VERSION_NOT_FOUND") {
+    const accepted = await restoreSnapshot(deps.client, resource.id, snapshot.id, scope, { restoreImageVersion });
+    if (accepted?.warning === "IMAGE_VERSION_NOT_FOUND") {
       void vscode.window.showWarningMessage(
         vscode.l10n.t("The image version recorded in this snapshot no longer exists, so only the data was restored. The application stays on its current version."),
       );
     }
+    if (accepted?.job_id) {
+      const finished = await followRestore(deps, resource, scope, accepted.job_id);
+      if (!finished) {
+        await deps.refresh();
+        return;
+      }
+    }
+    void vscode.window.showInformationMessage(vscode.l10n.t("Snapshot restored for {0}.", resource.name));
     await deps.refresh();
     if (scope === "applications") {
       deps.remoteFiles?.invalidateApp(resource.id);
@@ -130,6 +143,35 @@ async function handleSnapshot(
     }
   } catch (err) {
     deps.showError(err);
+  }
+}
+
+/** Barra de progresso até o job de restore acabar. `false` quando o usuário parou de acompanhar (o restore segue no servidor). */
+async function followRestore(deps: CommandDeps, resource: Resource, scope: SnapshotScope, jobId: string): Promise<boolean> {
+  try {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: vscode.l10n.t("Restoring snapshot of {0}...", resource.name),
+        cancellable: true,
+      },
+      async (progress, token) => {
+        await waitForSnapshotJob(deps.client, resource.id, jobId, scope, {
+          token,
+          onStatus: (status) =>
+            progress.report({ message: status === "queued" ? vscode.l10n.t("Waiting to start") : vscode.l10n.t("Restoring") }),
+        });
+      },
+    );
+    return true;
+  } catch (err) {
+    if (err instanceof ApiError && err.code === "CANCELLED") {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t("The restore of {0} keeps running in the background.", resource.name),
+      );
+      return false;
+    }
+    throw err;
   }
 }
 

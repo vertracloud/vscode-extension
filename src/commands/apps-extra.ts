@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import type { APIApplicationDeployment } from "@vertracloud/api-types/v1";
-import { downloadApp, saveBufferInteractive } from "../api/snapshots";
+import { chooseSaveTarget, downloadAppToFile, downloadToTarget } from "../api/snapshots";
 import { getAppDeploys, getDeployWebhook } from "../api/deploys";
 import type { ApiClient } from "../api/client";
 import { isImageApp } from "../images/app";
@@ -91,14 +91,22 @@ async function showDeploys(deps: CommandDeps, arg: unknown): Promise<void> {
     return;
   }
   if (picked.action === "download") {
-    let buffer: ArrayBuffer;
+    const destination = await chooseSaveTarget(`${entry.app.name}.zip`);
+    if (!destination) {return;}
     try {
-      buffer = await downloadApp(deps.client, appId);
+      await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Downloading {0}...", entry.app.name), cancellable: true },
+        (progress, token) =>
+          downloadToTarget(destination, (dest) =>
+            downloadAppToFile(deps.client, appId, dest, {
+              token,
+              onPreparing: () => progress.report({ message: vscode.l10n.t("Preparing the download") }),
+            }),
+          ),
+      );
     } catch (err) {
       deps.showError(err);
-      return;
     }
-    await saveBufferInteractive(buffer, `${entry.app.name}.zip`);
   }
 }
 

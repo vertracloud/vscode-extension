@@ -19,6 +19,6 @@ export interface CommandDeps {
   pickDatabase(): Promise<DbEntry | undefined>;
   resolveApp(arg: unknown): Promise<AppEntry | undefined>;
   resolveDatabase(arg: unknown): Promise<DbEntry | undefined>;
-  confirmDanger(resourceName: string, action: string): Promise<boolean>;
+  confirmDanger(resourceName: string, action: string, warning?: string): Promise<boolean>;
   remoteFiles?: { invalidateApp(appId: string): void };
 }

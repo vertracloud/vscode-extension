@@ -9,6 +9,17 @@ export interface ApiErrorLike {
   details?: unknown;
 }
 
+/** Aviso da confirmação de excluir app ou banco: roda na hora, sem volta, e sugere guardar uma cópia antes. */
+export function permanentWarning(): string {
+  return vscode.l10n.t("This is permanent and runs right away. To keep a copy, create a snapshot first.");
+}
+
+function numberDetail(details: unknown, key: string): number | undefined {
+  if (!details || typeof details !== "object") {return undefined;}
+  const value = (details as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 function formatRetryAfter(seconds: number): string {
   if (seconds < 60) {return vscode.l10n.t("in {0}s", seconds);}
   return vscode.l10n.t("in {0} min", Math.ceil(seconds / 60));
@@ -35,8 +46,54 @@ export function describeError(err: ApiErrorLike): string {
       return vscode.l10n.t("Daily quota reached.") + retry;
     case "DEPLOY_RATE_LIMITED":
       return vscode.l10n.t("Too many deploys.") + retry;
-    case "SNAPSHOT_RATE_LIMITED":
+    case "SNAPSHOT_RATE_LIMITED": {
+      const scope = err.details && typeof err.details === "object" ? (err.details as { scope?: unknown }).scope : undefined;
+      if (scope === "resource") {return vscode.l10n.t("Too many snapshots of this resource.") + retry;}
+      if (scope === "account") {return vscode.l10n.t("Your account reached its snapshot limit.") + retry;}
       return vscode.l10n.t("Too many snapshots.") + retry;
+    }
+    case "RESTORE_IN_PROGRESS":
+      return vscode.l10n.t("A snapshot is being restored into this resource. Wait for it to finish.");
+    case "SNAPSHOT_EXCEEDS_STORAGE": {
+      const required = numberDetail(err.details, "required_bytes");
+      const available = numberDetail(err.details, "available_bytes");
+      const ram = numberDetail(err.details, "required_ram_mb");
+      if (required === undefined || available === undefined) {
+        return vscode.l10n.t("The snapshot doesn't fit in this resource's storage.");
+      }
+      const base = vscode.l10n.t(
+        "The snapshot needs {0} but this resource has {1} of storage.",
+        formatBytes(required),
+        formatBytes(available),
+      );
+      return ram !== undefined
+        ? `${base} ${vscode.l10n.t("Use at least {0} of memory.", formatMegabytes(ram))}`
+        : base;
+    }
+    case "SNAPSHOT_CORRUPTED":
+      return vscode.l10n.t("The snapshot is corrupted and can't be restored.");
+    case "SNAPSHOT_IMPORT_FAILED":
+      return vscode.l10n.t("The snapshot data couldn't be imported into the database.");
+    case "SNAPSHOT_ENGINE_MISMATCH":
+      return vscode.l10n.t("The snapshot was taken from a different database engine.");
+    case "SNAPSHOT_RESTORE_FAILED":
+      return vscode.l10n.t("The restore failed. Try again shortly.");
+    case "SNAPSHOT_NOT_FOUND":
+      return vscode.l10n.t("Snapshot not found.");
+    case "SNAPSHOT_TOO_LARGE": {
+      const limit = numberDetail(err.details, "max_bytes");
+      return limit !== undefined
+        ? vscode.l10n.t("The snapshot is larger than the {0} limit.", formatBytes(limit))
+        : vscode.l10n.t("The snapshot is larger than the allowed limit.");
+    }
+    case "SNAPSHOT_FAILED":
+      return vscode.l10n.t("The snapshot failed. Try again shortly.");
+    case "SERVICE_UNAVAILABLE":
+      return vscode.l10n.t("The service is unavailable right now. Try again shortly.");
+    case "SNAPSHOT_TIMEOUT":
+      return vscode.l10n.t("The snapshot took too long. Try again.");
+    case "DATABASE_NOT_READY":
+      return vscode.l10n.t("The database isn't ready yet. Wait until it is online and try again.");
     case "PLAN_RESTRICTED_FEATURE":
       return vscode.l10n.t("Your plan doesn't include this feature.");
     case "PLAN_DOES_NOT_SUPPORT_WEB_PUBLISH":
@@ -82,7 +139,7 @@ export function describeError(err: ApiErrorLike): string {
     case "PLAN_NOT_ALLOWED":
       return vscode.l10n.t("Your plan doesn't allow this action.");
     case "OPERATION_IN_PROGRESS":
-      return vscode.l10n.t("Another operation is already in progress for this resource.");
+      return vscode.l10n.t("A snapshot or another operation is in progress for this resource. Try again in a moment.");
     case "CONTAINER_ALREADY_RUNNING":
       return vscode.l10n.t("The container is already running.");
     case "APP_NOT_FOUND":
@@ -93,8 +150,12 @@ export function describeError(err: ApiErrorLike): string {
       return vscode.l10n.t("You don't have access to this resource.");
     case "WEBSITE_ONLY":
       return vscode.l10n.t("This action is only available on the dashboard.");
-    case "FILE_TOO_LARGE":
-      return vscode.l10n.t("The file is too large.");
+    case "FILE_TOO_LARGE": {
+      const max = numberDetail(err.details, "max_bytes");
+      return max !== undefined
+        ? vscode.l10n.t("The file is too large. The limit is {0}.", formatBytes(max))
+        : vscode.l10n.t("The file is too large.");
+    }
     case "NO_FILE_UPLOADED":
       return vscode.l10n.t("No file was uploaded.");
     case "FILE_MODIFIED":
@@ -177,7 +238,7 @@ export function describeError(err: ApiErrorLike): string {
   }
 }
 
-export function statusLabel(status: "up" | "down" | "installing" | "building"): string {
+export function statusLabel(status: "up" | "down" | "installing" | "building" | "restoring"): string {
   switch (status) {
     case "up":
       return vscode.l10n.t("Online");
@@ -185,6 +246,8 @@ export function statusLabel(status: "up" | "down" | "installing" | "building"): 
       return vscode.l10n.t("Installing");
     case "building":
       return vscode.l10n.t("Building");
+    case "restoring":
+      return vscode.l10n.t("Restoring");
     default:
       return vscode.l10n.t("Offline");
   }

@@ -324,7 +324,7 @@ async function requestActionCommand(deps: CommandDeps, arg: unknown): Promise<vo
   try {
     let body: RESTPostAPIWorkspaceActionRequestBody;
     if (action === "snapshot_restore") {
-      const snapshots = await listSnapshots(deps.client, resource.id, resource.scope);
+      const snapshots = await listSnapshots(deps.client, resource.id, resource.scope, { workspaceId: workspace.id });
       if (snapshots.length === 0) {
         void vscode.window.showInformationMessage(vscode.l10n.t("No snapshots available."));
         return;

@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "vitest";
 import { ApiError } from "../src/api/client";
 import { getDeployWebhook } from "../src/api/deploys";
@@ -32,10 +35,15 @@ function makeDeps(onRequest: (call: RequestCall) => unknown): {
   const calls: RequestCall[] = [];
   let refreshed = false;
   const client = {
-    request: async (path: string, opts?: { method?: string; body?: unknown }) => {
+    request: async (path: string, opts?: { method?: string; body?: unknown; sink?: (chunk: Uint8Array) => Promise<void> }) => {
       const call: RequestCall = { path, method: opts?.method, body: opts?.body };
       calls.push(call);
-      return onRequest(call);
+      const answer = onRequest(call);
+      if (opts?.sink && answer instanceof ArrayBuffer) {
+        await opts.sink(new Uint8Array(answer));
+        return undefined;
+      }
+      return answer;
     },
   };
   const deps = {
@@ -148,31 +156,24 @@ test("editConfig validation blocks ram below 100 without calling the API", async
   assert.equal(calls.some((c) => c.method === "PATCH"), false);
 });
 
-test("download source writes the buffer to the chosen path", async () => {
+test("download source streams the zip to the chosen path", async () => {
   const buffer = new TextEncoder().encode("zip-content").buffer;
   const { deps } = makeDeps((call) => {
     if (call.path.endsWith("/deploys")) {return [];}
     if (call.path === "/v1/activities") {return [];}
-    if (call.path.endsWith("/download")) {return buffer;}
+    if (call.path.endsWith("/snapshots") && call.method === "POST") {return { id: "snap-1", date: "2026-11-18T00:00:00.000Z", size: "11" };}
+    if (call.path.endsWith("/snapshots/snap-1/download")) {return buffer;}
     return undefined;
   });
   vscodeMock.window.showQuickPick = (async (items: Array<{ label: string; action?: string }>) =>
     items.find((item) => item.action === "download")) as unknown as typeof vscodeMock.window.showQuickPick;
 
-  let written: Uint8Array | undefined;
-  const target = vscodeMock.Uri.file("/tmp/my-app.zip");
+  const dir = await mkdtemp(join(tmpdir(), "vertra-ext-app-"));
+  const target = vscodeMock.Uri.file(join(dir, "my-app.zip"));
   vscodeMock.window.showSaveDialog = (async () => target) as unknown as typeof vscodeMock.window.showSaveDialog;
-  const originalWriteFile = vscodeMock.workspace.fs.writeFile;
-  vscodeMock.workspace.fs.writeFile = async (_uri: unknown, content: Uint8Array) => {
-    written = content;
-  };
 
-  try {
-    await runCommand(deps, "vertraCloud.app.showDeploys");
-  } finally {
-    vscodeMock.workspace.fs.writeFile = originalWriteFile;
-  }
+  await runCommand(deps, "vertraCloud.app.showDeploys");
 
-  assert.ok(written);
-  assert.equal(new TextDecoder().decode(written), "zip-content");
+  assert.equal(await readFile(join(dir, "my-app.zip"), "utf8"), "zip-content");
+  assert.deepEqual(await readdir(dir), ["my-app.zip"]);
 });

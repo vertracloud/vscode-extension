@@ -1,4 +1,7 @@
 import { execFile } from "node:child_process";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import * as vscode from "vscode";
 import { createAppFromFolder, deployToApp, type CreateAppFields, type CreateAppResult } from "../deploy/deploy";
 import { readConfig, writeConfigKey } from "../project/config";
@@ -7,13 +10,13 @@ import { link, pickFolder, unlink } from "../project/link";
 import { buildErrorHint } from "../l10n";
 import type { CommandDeps } from "./deps";
 import { register } from "./index";
-import { downloadApp } from "../api/snapshots";
+import { downloadAppToFile } from "../api/snapshots";
 import { getImage } from "../api/images";
 import { isImageApp, summarizeImageCommit } from "../images/app";
 import { getPlansCatalog } from "../api/plans";
 import { findDockerfileRoot, planAllowsImages } from "../images/dockerfile";
 import type { AppEntry } from "../state";
-import { extractInto } from "../deploy/pull";
+import { extractFileInto } from "../deploy/pull";
 
 const DEFAULT_MEMORY = 512;
 
@@ -214,10 +217,20 @@ export function registerProjectCommands(deps: CommandDeps): void {
     if (choice !== confirmLabel) {return;}
     try {
       const result = await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Pulling files from {0}...", appName) },
-        async () => {
-          const buffer = await downloadApp(deps.client, target.appId);
-          return extractInto(Buffer.from(buffer), target.folder.uri.fsPath);
+        { location: vscode.ProgressLocation.Notification, title: vscode.l10n.t("Pulling files from {0}...", appName), cancellable: true },
+        async (progress, token) => {
+          // O zip vai para um arquivo temporário e é extraído dali, arquivo a arquivo: nada fica inteiro na memória.
+          const scratch = await mkdtemp(join(tmpdir(), "vertra-pull-"));
+          try {
+            const zipPath = join(scratch, "app.zip");
+            await downloadAppToFile(deps.client, target.appId, zipPath, {
+              token,
+              onPreparing: () => progress.report({ message: vscode.l10n.t("Preparing the download") }),
+            });
+            return await extractFileInto(zipPath, target.folder.uri.fsPath);
+          } finally {
+            await rm(scratch, { recursive: true, force: true });
+          }
         },
       );
       void vscode.window.showInformationMessage(vscode.l10n.t("Pulled {0} files from {1}.", String(result.written), appName));
