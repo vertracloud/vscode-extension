@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import type { APIApplicationMetric, RESTPostAPIApplicationRestartBody } from "@vertracloud/api-types/v1";
 import { deleteApp, getAppMetrics, restartApp, startApp, stopApp, type MetricsRange } from "../api/endpoints";
-import { formatBytes } from "../l10n";
+import { formatBytes, permanentWarning } from "../l10n";
 import type { CommandDeps } from "./deps";
 import { appIdOf, openUrl, register, workspaceIdOf } from "./index";
 
@@ -133,7 +133,7 @@ export function registerAppsCommands(deps: CommandDeps): void {
   register(context, "vertraCloud.app.delete", async (arg: unknown) => {
     const entry = await deps.resolveApp(arg);
     if (!entry) {return;}
-    if (!(await deps.confirmDanger(entry.app.name, vscode.l10n.t("Delete application")))) {return;}
+    if (!(await deps.confirmDanger(entry.app.name, vscode.l10n.t("Delete application"), permanentWarning()))) {return;}
     try {
       await deleteApp(deps.client, entry.app.id);
     } catch (err) {

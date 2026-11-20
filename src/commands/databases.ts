@@ -12,6 +12,7 @@ import {
   updateDatabase,
 } from "../api/databases";
 import { saveBufferInteractive } from "../api/snapshots";
+import { permanentWarning } from "../l10n";
 import type { CommandDeps } from "./deps";
 import { workspaceIdOf } from "./index";
 
@@ -282,7 +283,7 @@ async function editDb(deps: CommandDeps, arg: unknown): Promise<void> {
 async function deleteDb(deps: CommandDeps, arg: unknown): Promise<void> {
   const entry = await deps.resolveDatabase(arg);
   if (!entry) {return;}
-  const confirmed = await deps.confirmDanger(entry.db.name, vscode.l10n.t("delete this database"));
+  const confirmed = await deps.confirmDanger(entry.db.name, vscode.l10n.t("delete this database"), permanentWarning());
   if (!confirmed) {return;}
   try {
     await deleteDatabase(deps.client, entry.db.id);
