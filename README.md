@@ -48,7 +48,7 @@ The project file gets syntax highlighting, completion, hover help and inline err
 - **Show logs** prints recent output; **Toggle realtime logs** streams it live to an output channel and reconnects while the connection stays healthy.
 - **Show metrics** summarizes CPU, memory and network usage.
 - **Manage environment variables** adds, edits and removes variables. Values are masked, and never copied or logged unless you ask.
-- **Open remote files** mounts the application's files as a `vertra://` folder, so you can open, edit and save them in place. Deleting, moving and uploading ask first.
+- **Open remote files** mounts the application's files as a `vertra://` folder, so you can open, edit and save them in place. Files open and save up to 10 MiB each; larger ones are refused with a message. Deleting, moving and uploading ask first.
 - **Delete application** asks you to type the name before deleting.
 
 ### Network
@@ -85,7 +85,11 @@ For an application that runs from an image:
 
 ### Snapshots
 
-**Manage snapshots** lists, creates, downloads and restores snapshots of applications and databases. Restoring always asks for confirmation.
+**Manage snapshots** lists, creates, downloads and restores snapshots of applications and databases. Restoring always asks for confirmation, then follows the restore with a progress bar until it finishes (you can stop watching; the restore keeps running) and tells you why if it fails.
+
+Deleting an application, deleting a database and restoring a snapshot run right away and cannot be undone: the confirmation says so. To keep a copy of the current data, create a snapshot first with **Manage snapshots**.
+
+Downloading a project (**Pull**, or download from the deploys list) takes a manual snapshot of the application and downloads it, so it counts against your snapshot quota and needs a key with both `snapshots:write` and `snapshots:read`. It works for any size: when the snapshot is still being taken the extension shows "Preparing the download", and the download itself only gives up if the file stops arriving for a minute. You can cancel it at any time.
 
 ### Blob Storage
 
@@ -123,8 +127,8 @@ Grant only the scopes you use when creating the key.
 |---|---|
 | See your apps, databases and account | `account:read`, `apps:read`, `databases:read` |
 | Deploy, control and configure apps | `apps:write` (+ `apps:envs` for variables, `apps:files` for remote files, `apps:delete` to delete) |
-| Manage databases | `databases:write` (+ `databases:credentials` for certificate and password, `databases:delete` to delete) |
-| Snapshots | `snapshots:read`, `snapshots:write` |
+| Manage databases | `databases:write` (+ `databases:credentials` for certificate and password, `databases:delete` to delete a database or reset its data) |
+| Snapshots (including **Pull** and downloading a project) | `snapshots:read`, `snapshots:write` |
 | Folders and favorites | `account:write` |
 | Blob Storage | `blob:read` (browse, preview, links), `blob:write` (upload, rename, visibility, delete) |
 | Docker images | `images:read` (list, details, versions, logs, context, Dockerfile check), `images:write` (create, rebuild, GitHub link), `images:delete` (delete; an image with apps also needs `apps:delete`); creating an application from an image uses `apps:write` |
