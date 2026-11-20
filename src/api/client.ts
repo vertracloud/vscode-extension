@@ -2,6 +2,10 @@ import * as vscode from "vscode";
 
 const DEFAULT_BASE_URL = "https://api.vertracloud.app";
 const DEFAULT_TIMEOUT_MS = 30_000;
+/** Criar um snapshot e abrir o download podem passar de 95 s. */
+export const DESTRUCTIVE_TIMEOUT_MS = 10 * 60_000;
+/** Download não tem prazo total: só estoura quando ficam tantos ms sem chegar byte (o relógio reinicia a cada pedaço). */
+export const DOWNLOAD_INACTIVITY_MS = 60_000;
 const RETRY_DELAY_MS = 500;
 const RETRYABLE_STATUS = new Set([502, 503, 504]);
 const UNAUTHORIZED_CODES = new Set(["API_KEY_INVALID", "SESSION_REVOKED", "AUTH_TOKEN_MISSING"]);
@@ -44,6 +48,13 @@ export interface RequestOptions {
   token?: vscode.CancellationToken;
   retryIdempotent?: boolean;
   raw?: boolean;
+  /** Só com `raw`: ms sem receber byte antes de desistir (padrão 60 s). `timeoutMs` passa a valer só até os cabeçalhos chegarem. */
+  inactivityMs?: number;
+  /**
+   * Só com `raw`: cada pedaço do corpo vai para cá assim que chega, em vez de ficar na memória (o resultado é `undefined`).
+   * Sem nova tentativa: depois de um byte escrito não dá para repetir o pedido. Um erro do `sink` sobe como está.
+   */
+  sink?: (chunk: Uint8Array) => Promise<void>;
   /** Sem `Authorization`, mesmo com token disponível. */
   anonymous?: boolean;
   accept?: string;
@@ -92,7 +103,7 @@ export class ApiClient {
 
   async request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     const method = opts.method ?? "GET";
-    const canRetry = method === "GET" ? opts.retryIdempotent !== false : false;
+    const canRetry = method === "GET" ? opts.retryIdempotent !== false && !opts.sink : false;
 
     for (let attempt = 0; ; attempt++) {
       try {
@@ -184,7 +195,11 @@ export class ApiClient {
 
       this.captureRateLimit(response.headers);
       if (!response.ok) {throw await this.errorFromResponse(response, opts.anonymous);}
-      if (opts.raw) {return (await response.arrayBuffer()) as T;}
+      if (opts.raw) {
+        // Sem prazo total: o corpo de um download grande pode levar minutos, desde que continue chegando.
+        clearTimeout(timer);
+        return (await this.readBody(response, controller, opts.inactivityMs ?? DOWNLOAD_INACTIVITY_MS, () => cancelled, opts.sink)) as T;
+      }
 
       const text = await response.text();
       if (!text) {return undefined as T;}
@@ -230,6 +245,65 @@ export class ApiClient {
       quotaReset: numberOrUndefined(headers.get("x-quota-reset")),
     };
     if (Object.values(info).some((value) => value !== undefined)) {this.lastRateLimit = info;}
+  }
+
+  private async readBody(
+    response: Response,
+    controller: AbortController,
+    inactivityMs: number,
+    wasCancelled: () => boolean,
+    sink?: (chunk: Uint8Array) => Promise<void>,
+  ): Promise<ArrayBuffer | undefined> {
+    if (!response.body) {return sink ? undefined : new ArrayBuffer(0);}
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    let stalled = false;
+    let sinkFailure: { error: unknown } | undefined;
+    let idle: ReturnType<typeof setTimeout> | undefined;
+    const arm = (): void => {
+      clearTimeout(idle);
+      idle = setTimeout(() => {
+        stalled = true;
+        controller.abort();
+      }, inactivityMs);
+    };
+    arm();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {break;}
+        if (sink) {
+          // O disco lento não conta como download parado: o relógio só corre enquanto se espera a rede.
+          clearTimeout(idle);
+          try {
+            await sink(value);
+          } catch (error) {
+            sinkFailure = { error };
+            throw error;
+          }
+        } else {
+          chunks.push(value);
+        }
+        total += value.byteLength;
+        arm();
+      }
+    } catch (error) {
+      await reader.cancel(error).catch(() => undefined);
+      if (sinkFailure) {throw sinkFailure.error;}
+      if (stalled) {throw new ApiError(0, "TIMEOUT", "No data received from the server");}
+      throw this.networkError(error, wasCancelled(), false);
+    } finally {
+      clearTimeout(idle);
+    }
+    if (sink) {return undefined;}
+    const out = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      out.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return out.buffer;
   }
 
   private async errorFromResponse(response: Response, anonymous?: boolean): Promise<ApiError> {
