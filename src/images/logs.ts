@@ -1,3 +1,4 @@
+import { readUnlessAborted } from "../abortable-read";
 import { parseSse } from "../sse";
 
 // OutputChannel não renderiza escape ANSI: sem remover, a saída colorida do build chega suja.
@@ -34,13 +35,14 @@ export async function readImageLog(body: ReadableStream<Uint8Array>, opts: ReadI
   const reader = body.pipeThrough(parseSse()).getReader();
   try {
     for (;;) {
-      const { done, value } = await reader.read();
+      const { done, value } = await readUnlessAborted(reader, controller.signal);
       if (done) {return "ended";}
       if (value.event !== "log" && value.event !== "message") {continue;}
       arm();
       opts.onLine(value.data.replace(ANSI, ""));
     }
   } catch {
+    void reader.cancel().catch(() => undefined);
     if (idleFired) {return "idle";}
     return controller.signal.aborted ? "cancelled" : "interrupted";
   } finally {

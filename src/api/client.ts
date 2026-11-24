@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { readUnlessAborted } from "../abortable-read";
 
 const DEFAULT_BASE_URL = "https://api.vertracloud.app";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -271,7 +272,7 @@ export class ApiClient {
     arm();
     try {
       for (;;) {
-        const { done, value } = await reader.read();
+        const { done, value } = await readUnlessAborted(reader, controller.signal);
         if (done) {break;}
         if (sink) {
           // O disco lento não conta como download parado: o relógio só corre enquanto se espera a rede.
@@ -289,7 +290,7 @@ export class ApiClient {
         arm();
       }
     } catch (error) {
-      await reader.cancel(error).catch(() => undefined);
+      void reader.cancel(error).catch(() => undefined);
       if (sinkFailure) {throw sinkFailure.error;}
       if (stalled) {throw new ApiError(0, "TIMEOUT", "No data received from the server");}
       throw this.networkError(error, wasCancelled(), false);

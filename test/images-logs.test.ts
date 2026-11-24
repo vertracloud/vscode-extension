@@ -114,4 +114,26 @@ describe("readImageLog", () => {
     });
     assert.equal(result, "interrupted");
   });
+
+  it("stops after the idle time even when the body never receives the abort", async () => {
+    vi.useFakeTimers();
+    const lines: string[] = [];
+    const body = streamOf(["event: log\ndata: history\n\n"], { hang: true });
+    let result: string | undefined;
+    void readImageLog(body, { controller: new AbortController(), idleMs: 3000, onLine: (l) => lines.push(l) }).then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(3100);
+    assert.equal(result, "idle");
+    assert.deepEqual(lines, ["history"]);
+  });
+
+  it("returns cancelled when the user aborts and the body never receives the abort", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    let result: string | undefined;
+    void readImageLog(streamOf([], { hang: true }), { controller, onLine: () => {} }).then((r) => (result = r));
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(10);
+    assert.equal(result, "cancelled");
+  });
 });

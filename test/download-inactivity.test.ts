@@ -81,4 +81,70 @@ describe("download read with an inactivity deadline", () => {
       (e: unknown) => e instanceof ApiError && e.code === "TIMEOUT",
     );
   });
+
+  describe("when the body stream never delivers the abort", () => {
+    const HUNG = Symbol("hung");
+
+    function deafBody(): (url: string, req: RequestInit) => Promise<Response> {
+      return async () => {
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new Uint8Array([1]));
+          },
+        });
+        return new Response(body, { status: 200 });
+      };
+    }
+
+    async function outcome(promise: Promise<unknown>, ms: number): Promise<unknown> {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const hung = new Promise<symbol>((resolve) => {
+        timer = setTimeout(() => resolve(HUNG), ms);
+      });
+      const settled = promise.then(
+        (value) => value,
+        (error: unknown) => error,
+      );
+      try {
+        return await Promise.race([settled, hung]);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    it("still ends with CANCELLED when the caller's token fires", async () => {
+      vi.stubGlobal("fetch", deafBody());
+      const source = new CancellationTokenSource();
+      setTimeout(() => source.cancel(), 50);
+      const result = await outcome(
+        client().request<ArrayBuffer>("/v1/users/a/snapshots/s/download", { raw: true, inactivityMs: 5_000, token: source.token as never }),
+        1_500,
+      );
+      assert.ok(result instanceof ApiError && result.code === "CANCELLED", `got ${String(result)}`);
+    });
+
+    it("still ends with TIMEOUT when no byte arrives within the inactivity window", async () => {
+      vi.stubGlobal("fetch", deafBody());
+      const result = await outcome(
+        client().request<ArrayBuffer>("/v1/users/a/snapshots/s/download", { raw: true, inactivityMs: 100 }),
+        1_500,
+      );
+      assert.ok(result instanceof ApiError && result.code === "TIMEOUT" && /no data/i.test(result.message), `got ${String(result)}`);
+    });
+
+    it("ends the sink download the same way", async () => {
+      vi.stubGlobal("fetch", deafBody());
+      const written: number[] = [];
+      const result = await outcome(
+        client().request("/v1/users/a/snapshots/s/download", {
+          raw: true,
+          inactivityMs: 100,
+          sink: async (chunk) => void written.push(chunk.byteLength),
+        }),
+        1_500,
+      );
+      assert.ok(result instanceof ApiError && result.code === "TIMEOUT", `got ${String(result)}`);
+      assert.deepEqual(written, [1]);
+    });
+  });
 });
