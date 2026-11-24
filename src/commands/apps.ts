@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import type { APIApplicationMetric, RESTPostAPIApplicationRestartBody } from "@vertracloud/api-types/v1";
 import { deleteApp, getAppMetrics, restartApp, startApp, stopApp, type MetricsRange } from "../api/endpoints";
-import { formatBytes, permanentWarning } from "../l10n";
+import { formatBytes, metricEventLines, permanentWarning } from "../l10n";
 import type { CommandDeps } from "./deps";
 import { appIdOf, openUrl, register, workspaceIdOf } from "./index";
 
@@ -21,6 +21,7 @@ function summarize(metrics: APIApplicationMetric[]): string[] {
     vscode.l10n.t("Storage: {0}", formatBytes(last.storage)),
     vscode.l10n.t("CPU average: {0}% · peak {1}%", avg(cpus).toFixed(2), Math.max(...cpus).toFixed(2)),
     vscode.l10n.t("RAM average: {0} · peak {1}", formatBytes(avg(rams)), formatBytes(Math.max(...rams))),
+    ...metricEventLines(metrics),
   ];
 }
 

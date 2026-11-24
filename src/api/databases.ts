@@ -1,11 +1,15 @@
 import type {
   APIDatabase,
+  APIDatabaseCertificate,
   APIDatabaseMetrics,
   APIDatabasePasswordReset,
   APIDatabaseVersions,
   RESTPostAPIDatabaseCreateBody,
+  RESTPostAPIDatabaseCreateResponse,
 } from "@vertracloud/api-types/v1";
 import type { ApiClient } from "./client";
+
+type Success<T> = Extract<T, { response: unknown }>["response"];
 
 export type MetricsRange = "10m" | "30m" | "24h";
 
@@ -18,8 +22,8 @@ const scope = (opts?: Scoped) => ({ workspace_id: opts?.workspaceId });
 export function createDatabase(
   client: ApiClient,
   body: RESTPostAPIDatabaseCreateBody,
-): Promise<APIDatabase> {
-  return client.request<APIDatabase>("/v1/databases", { method: "POST", body });
+): Promise<Success<RESTPostAPIDatabaseCreateResponse>> {
+  return client.request<Success<RESTPostAPIDatabaseCreateResponse>>("/v1/databases", { method: "POST", body });
 }
 
 export function updateDatabase(
@@ -58,14 +62,13 @@ export function getDatabaseMetrics(
   });
 }
 
-export function downloadDatabaseCertificate(
+export function getDatabaseCertificate(
   client: ApiClient,
   id: string,
   opts?: Scoped,
-): Promise<ArrayBuffer> {
-  return client.request<ArrayBuffer>(`/v1/databases/${id}/credentials/certificate`, {
+): Promise<APIDatabaseCertificate> {
+  return client.request<APIDatabaseCertificate>(`/v1/databases/${id}/credentials/certificate`, {
     query: scope(opts),
-    raw: true,
   });
 }
 

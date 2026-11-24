@@ -5,11 +5,11 @@ import type { APIDatabase } from "@vertracloud/api-types/v1";
 import { ApiClient } from "../src/api/client";
 import {
   createDatabase,
-  downloadDatabaseCertificate,
+  getDatabaseCertificate,
   resetDatabasePassword,
 } from "../src/api/databases";
 import { registerDatabasesCommands } from "../src/commands/databases";
-import { registeredCommands, createFakeOutputChannel, type FakeOutputChannel } from "./vscode-mock";
+import { registeredCommands, createFakeOutputChannel, env as mockEnv, type FakeOutputChannel } from "./vscode-mock";
 import type { CommandDeps } from "../src/commands/deps";
 import type { DbEntry } from "../src/state";
 
@@ -50,16 +50,11 @@ describe("api/databases", () => {
     assert.equal(body2.type, 3);
   });
 
-  it("downloads the certificate as a raw buffer", async () => {
-    const bytes = new Uint8Array([1, 2, 3]);
-    const calls: Call[] = [];
-    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
-      calls.push({ url, init });
-      return new Response(bytes as BodyInit, { status: 200 });
-    });
-    const buffer = await downloadDatabaseCertificate(client(), "db-1");
+  it("getDatabaseCertificate reads the JSON envelope instead of raw bytes", async () => {
+    const calls = stubFetch({ response: { crt: "C", key: "K", pem: "P", ca: "CA-PEM" } });
+    const cert = await getDatabaseCertificate(client(), "db-1");
     assert.equal(calls[0].url, `${BASE}/v1/databases/db-1/credentials/certificate`);
-    assert.deepEqual(new Uint8Array(buffer), bytes);
+    assert.equal(cert.ca, "CA-PEM");
   });
 
   it("resets the password and returns it once", async () => {
@@ -175,6 +170,37 @@ describe("commands/databases", () => {
     assert.equal(refreshCalls, 1);
   });
 
+  it("create shows the password once in a modal with a copy button", async () => {
+    stubFetch({ response: { id: "db-1", password: "pw-once" } });
+    quickPickQueue = [{ engine: { type: 3, label: "Redis", minRam: 512, defaultUser: "none" } }];
+    inputBoxQueue = ["cache", "512", ""];
+    await run(fakeDeps(), "vertraCloud.db.create");
+    const [message, options, copy] = showInformationMessageCalls[0] as [string, { modal: boolean }, string];
+    assert.ok(message.includes("pw-once"));
+    assert.ok(message.includes("won't be shown again"));
+    assert.equal(options.modal, true);
+    assert.equal(copy, "Copy");
+  });
+
+  it("create copies the password when Copy is chosen and never logs it", async () => {
+    stubFetch({ response: { id: "db-1", password: "pw-once" } });
+    quickPickQueue = [{ engine: { type: 3, label: "Redis", minRam: 512, defaultUser: "none" } }];
+    inputBoxQueue = ["cache", "512", ""];
+    informationMessageQueue = ["Copy"];
+    mockEnv.clipboard.text = "";
+    await run(fakeDeps(), "vertraCloud.db.create");
+    assert.equal(mockEnv.clipboard.text, "pw-once");
+    assert.ok(!JSON.stringify(channel.lines).includes("pw-once"));
+  });
+
+  it("create without a password in the answer keeps the old notice", async () => {
+    stubFetch({ response: { id: "db-1" } });
+    quickPickQueue = [{ engine: { type: 3, label: "Redis", minRam: 512, defaultUser: "none" } }];
+    inputBoxQueue = ["cache", "512", ""];
+    await run(fakeDeps(), "vertraCloud.db.create");
+    assert.ok((showInformationMessageCalls[0] as [string])[0].includes("shown only once"));
+  });
+
   function stubCatalog(): Call[] {
     const calls: Call[] = [];
     vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
@@ -262,15 +288,20 @@ describe("commands/databases", () => {
     assert.ok((showInformationMessageCalls[0] as [string])[0].includes('user "root"'));
   });
 
-  it("downloadCertificate writes the received buffer", async () => {
-    const bytes = new Uint8Array([9, 9, 9]);
-    vi.stubGlobal("fetch", async () => new Response(bytes, { status: 200 }));
-
+  async function runDownload(onWarning?: (message: string) => void): Promise<Uint8Array | undefined> {
     let written: Uint8Array | undefined;
     const originalWriteFile = vscodeMock.workspace.fs.writeFile;
-    const originalSaveDialog = (vscodeMock.window as unknown as { showSaveDialog: unknown }).showSaveDialog;
-    (vscodeMock.window as unknown as { showSaveDialog: (...a: unknown[]) => Promise<unknown> }).showSaveDialog =
-      async () => vscodeMock.Uri.file("/tmp/my-db-ca.pem");
+    const mockWindow = vscodeMock.window as unknown as {
+      showSaveDialog: unknown;
+      showWarningMessage: unknown;
+    };
+    const originalSaveDialog = mockWindow.showSaveDialog;
+    const originalWarning = mockWindow.showWarningMessage;
+    mockWindow.showSaveDialog = async () => vscodeMock.Uri.file("/tmp/my-db-ca.pem");
+    mockWindow.showWarningMessage = async (message: string) => {
+      onWarning?.(message);
+      return undefined;
+    };
     vscodeMock.workspace.fs.writeFile = async (_uri, content: Uint8Array) => {
       written = content;
     };
@@ -279,10 +310,25 @@ describe("commands/databases", () => {
       await run(fakeDeps(), "vertraCloud.db.downloadCertificate");
     } finally {
       vscodeMock.workspace.fs.writeFile = originalWriteFile;
-      (vscodeMock.window as unknown as { showSaveDialog: unknown }).showSaveDialog = originalSaveDialog;
+      mockWindow.showSaveDialog = originalSaveDialog;
+      mockWindow.showWarningMessage = originalWarning;
     }
+    return written;
+  }
 
-    assert.deepEqual(written, bytes);
+  it("downloadCertificate writes the CA PEM, not the JSON body", async () => {
+    const ca = "-----BEGIN CERTIFICATE-----\nAAA\n-----END CERTIFICATE-----\n";
+    stubFetch({ response: { crt: "C", key: "K", pem: "P", ca } });
+    const written = await runDownload();
+    assert.equal(Buffer.from(written!).toString("utf8"), ca);
+  });
+
+  it("downloadCertificate warns and writes nothing when the database has no CA", async () => {
+    stubFetch({ response: { crt: "C", key: "K", pem: "P" } });
+    const warnings: string[] = [];
+    const written = await runDownload((message) => warnings.push(message));
+    assert.equal(written, undefined);
+    assert.deepEqual(warnings, ["This database has no CA certificate to download."]);
   });
 
   it("delete only calls the API after confirmation", async () => {

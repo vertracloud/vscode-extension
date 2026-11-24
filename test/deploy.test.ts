@@ -138,6 +138,19 @@ describe("createAppFromFolder", () => {
     assert.ok(capturedForm!.get("file"));
     assert.deepEqual(result, { id: "1" });
   });
+
+  it("sends auto_restart as a text field only when given", async () => {
+    const forms: FormData[] = [];
+    const client = fakeClient((_p, opts) => {
+      forms.push((opts as { form: FormData }).form);
+      return { id: "1" };
+    });
+    const fields = { name: "app", memory: 100, main: "index.js", version: "recommended" };
+    await createAppFromFolder(client, { root, fields: { ...fields, auto_restart: false } });
+    await createAppFromFolder(client, { root, fields });
+    assert.equal(forms[0].get("auto_restart"), "false");
+    assert.equal(forms[1].has("auto_restart"), false);
+  });
 });
 
 describe("createAppFromFolder build wait", () => {

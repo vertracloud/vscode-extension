@@ -159,14 +159,23 @@ export class VertraFileSystemProvider implements vscode.FileSystemProvider {
         vscode.l10n.t("Deleting a folder on Vertra Cloud removes everything inside it."),
       );
     }
+    let released: Awaited<ReturnType<typeof files.deleteFile>>;
     try {
-      await files.deleteFile(this.client, uri.authority, path);
+      released = await files.deleteFile(this.client, uri.authority, path);
     } catch (error) {
       throw this.toFsError(error, uri);
     }
     this.mtimes.delete(this.key(uri.authority, path));
     this.invalidate(uri.authority, parentOf(path));
     this.fire(vscode.FileChangeType.Deleted, uri);
+    if (released?.space_released === "on_restart") {
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t(
+          "Deleted {0}. The app still has it open, so the disk space comes back when the app restarts.",
+          nameOf(path),
+        ),
+      );
+    }
   }
 
   async rename(

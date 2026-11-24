@@ -40,15 +40,15 @@ Requires a VS Code-compatible editor at version 1.85 or later.
 
 ### `vertracloud.config`
 
-The project file gets syntax highlighting, completion, hover help and inline errors. **Create config file** writes one for you, and **Edit config file** opens it.
+The project file gets syntax highlighting, completion, hover help and inline errors. **Create config file** writes one for you, and **Edit config file** opens it. `AUTORESTART=true|false` controls whether the app restarts on its own after a crash (on by default), and is applied when the application is created from the folder.
 
 ### Applications
 
 - Start, stop and restart — also **Restart (reinstall dependencies)** and **Restart (force build)**.
-- **Show logs** prints recent output; **Toggle realtime logs** streams it live to an output channel and reconnects while the connection stays healthy.
-- **Show metrics** summarizes CPU, memory and network usage.
+- **Show logs** prints recent output; **Toggle realtime logs** streams it live to an output channel and reconnects while the connection stays healthy. During a zero-downtime deploy, the new version's install and build output appears labeled `[New version]`, and a discarded new version is explained with its reason.
+- **Show metrics** summarizes CPU, memory and network usage, plus the restarts, automatic restarts and crashes (with out-of-memory stops) in the period.
 - **Manage environment variables** adds, edits and removes variables. Values are masked, and never copied or logged unless you ask.
-- **Open remote files** mounts the application's files as a `vertra://` folder, so you can open, edit and save them in place. Files open and save up to 10 MiB each; larger ones are refused with a message. Deleting, moving and uploading ask first.
+- **Open remote files** mounts the application's files as a `vertra://` folder, so you can open, edit and save them in place. Files open and save up to 10 MiB each; larger ones are refused with a message. Deleting, moving and uploading ask first. When a deleted file is still open in the app, a notice tells you the disk space comes back when the app restarts.
 - **Delete application** asks you to type the name before deleting.
 
 ### Network
@@ -57,7 +57,7 @@ For applications with web publishing: publish and unpublish, open the site, choo
 
 ### Databases
 
-Create databases, start and stop them, edit their name and memory, view metrics, download the TLS certificate and reset the password. The new password is shown once, right after the reset — it is never stored or shown again. Deleting a database asks you to type its name.
+Create databases, start and stop them, edit their name and memory, view metrics, download the TLS certificate and reset the password. The password is shown once, right after the database is created or reset — it is never stored or shown again. Deleting a database asks you to type its name.
 
 ### Docker images
 

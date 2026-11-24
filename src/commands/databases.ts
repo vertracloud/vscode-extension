@@ -3,7 +3,7 @@ import type { APIDatabase, APIDatabaseMetrics, DatabaseType } from "@vertracloud
 import {
   createDatabase,
   deleteDatabase,
-  downloadDatabaseCertificate,
+  getDatabaseCertificate,
   getDatabaseVersions,
   getDatabaseMetrics,
   resetDatabasePassword,
@@ -12,7 +12,7 @@ import {
   updateDatabase,
 } from "../api/databases";
 import { saveBufferInteractive } from "../api/snapshots";
-import { permanentWarning } from "../l10n";
+import { metricEventLines, permanentWarning } from "../l10n";
 import type { CommandDeps } from "./deps";
 import { workspaceIdOf } from "./index";
 
@@ -114,7 +114,7 @@ async function createDb(deps: CommandDeps): Promise<void> {
   });
 
   try {
-    await createDatabase(deps.client, {
+    const created = await createDatabase(deps.client, {
       name,
       ram,
       type: engine.type,
@@ -122,6 +122,21 @@ async function createDb(deps: CommandDeps): Promise<void> {
       description: description || undefined,
     });
     await deps.refresh();
+    if (created.password) {
+      await showPasswordOnce(
+        vscode.l10n.t(
+          "Database {0} created ({1}, user \"{2}\", {3}:{4}): password {5}\nThis password won't be shown again. To get another one, use \"Reset password\".",
+          name,
+          engine.label,
+          usernameOf(created),
+          created.host,
+          created.port,
+          created.password,
+        ),
+        created.password,
+      );
+      return;
+    }
     void vscode.window.showInformationMessage(
       vscode.l10n.t(
         "Database created. The password is shown only once — use \"Reset password\" to get one.",
@@ -129,6 +144,13 @@ async function createDb(deps: CommandDeps): Promise<void> {
     );
   } catch (err) {
     deps.showError(err);
+  }
+}
+
+async function showPasswordOnce(message: string, password: string): Promise<void> {
+  const choice = await vscode.window.showInformationMessage(message, { modal: true }, vscode.l10n.t("Copy"));
+  if (choice === vscode.l10n.t("Copy")) {
+    await vscode.env.clipboard.writeText(password);
   }
 }
 
@@ -176,6 +198,7 @@ async function showMetrics(deps: CommandDeps, arg: unknown): Promise<void> {
     [
       { label: vscode.l10n.t("Last: CPU {0}% · RAM {1}%", last.cpu, last.ram) },
       { label: vscode.l10n.t("Peak: CPU {0}% · RAM {1}%", peakCpu, peakRam) },
+      ...metricEventLines(metrics).map((label) => ({ label })),
     ],
     { placeHolder: entry.db.name },
   );
@@ -185,8 +208,12 @@ async function downloadCertificate(deps: CommandDeps, arg: unknown): Promise<voi
   const entry = await deps.resolveDatabase(arg);
   if (!entry) {return;}
   try {
-    const buffer = await downloadDatabaseCertificate(deps.client, entry.db.id);
-    await saveBufferInteractive(buffer, `${entry.db.name}-ca.pem`);
+    const cert = await getDatabaseCertificate(deps.client, entry.db.id);
+    if (!cert.ca) {
+      void vscode.window.showWarningMessage(vscode.l10n.t("This database has no CA certificate to download."));
+      return;
+    }
+    await saveBufferInteractive(new TextEncoder().encode(cert.ca).buffer as ArrayBuffer, `${entry.db.name}-ca.pem`);
   } catch (err) {
     deps.showError(err);
   }
@@ -209,7 +236,7 @@ async function resetPassword(deps: CommandDeps, arg: unknown): Promise<void> {
   }
 
   const engine = engineOf(entry.db.type);
-  const choice = await vscode.window.showInformationMessage(
+  await showPasswordOnce(
     vscode.l10n.t(
       "New password for {0} ({1}, user \"{2}\", {3}:{4}): {5}\nThis password won't be shown again.",
       entry.db.name,
@@ -219,12 +246,8 @@ async function resetPassword(deps: CommandDeps, arg: unknown): Promise<void> {
       entry.db.port,
       password,
     ),
-    { modal: true },
-    vscode.l10n.t("Copy"),
+    password,
   );
-  if (choice === vscode.l10n.t("Copy")) {
-    await vscode.env.clipboard.writeText(password);
-  }
 }
 
 type EditField = "name" | "description" | "ram";

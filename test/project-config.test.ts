@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import path, { join } from "node:path";
 import { afterEach, beforeEach, test } from "vitest";
 import * as vscode from "vscode";
 import {
@@ -9,8 +10,11 @@ import {
   serializeSet,
   readConfig,
   KNOWN_KEYS,
+  KEY_DOCS,
+  buildConfigFromApp,
   writeConfigKey,
   validateConfig,
+  parseAutoRestart,
 } from "../src/project/config";
 
 let dir: string;
@@ -123,4 +127,45 @@ test("validateConfig: unknown keys warn, NAME/START/BUILD have length limits", a
 
   const longBuild = await validateConfig({ BUILD: "x".repeat(513) }, ctx);
   assert.ok(longBuild.some((i) => i.key === "BUILD" && i.severity === "error"));
+});
+
+test("AUTORESTART is a known key with docs and a true/false check", async () => {
+  assert.ok((KNOWN_KEYS as readonly string[]).includes("AUTORESTART"));
+  assert.ok(KEY_DOCS.AUTORESTART.length > 0);
+  const ctx = { fileExists: async () => true };
+  const bad = await validateConfig({ AUTORESTART: "maybe" }, ctx);
+  assert.ok(bad.some((i) => i.key === "AUTORESTART" && i.severity === "error"));
+  for (const ok of ["true", "false", "False", "", "  "]) {
+    assert.deepEqual(await validateConfig({ AUTORESTART: ok }, ctx), []);
+  }
+});
+
+test("buildConfigFromApp writes AUTORESTART only when the app carries it", () => {
+  const base = { id: "app-1", name: "My App", ram: 512, main_file: "index.js", version: "recommended", start_command: null, build_command: null, subdomain: null };
+  assert.match(buildConfigFromApp({ ...base, auto_restart: false }), /^AUTORESTART=false$/m);
+  assert.match(buildConfigFromApp({ ...base, auto_restart: true, custom_image: { image_id: "i1" } }), /^AUTORESTART=true$/m);
+  assert.doesNotMatch(buildConfigFromApp(base), /AUTORESTART/);
+});
+
+test("parseAutoRestart mirrors the CLI: empty is unset, true/false in any case, the rest is invalid", () => {
+  assert.deepEqual(parseAutoRestart(undefined), { value: undefined, valid: true });
+  assert.deepEqual(parseAutoRestart(""), { value: undefined, valid: true });
+  assert.deepEqual(parseAutoRestart(" TRUE "), { value: true, valid: true });
+  assert.deepEqual(parseAutoRestart("False"), { value: false, valid: true });
+  assert.deepEqual(parseAutoRestart("maybe"), { value: undefined, valid: false });
+});
+
+test("the grammar highlights the AUTORESTART boolean in any case, and only a whole word", () => {
+  const grammar = JSON.parse(fs.readFileSync(path.join(__dirname, "../syntaxes/vertracloud-config.tmLanguage.json"), "utf8"));
+  assert.ok(grammar.patterns.some((p: { include: string }) => p.include === "#autorestart"));
+  assert.equal(grammar.repository.autorestart.captures["3"].name, "constant.language.boolean.vertracloud-config");
+  const rule = new RegExp(grammar.repository.autorestart.match);
+  for (const value of ["true", "false", "TRUE", "False"]) {
+    assert.equal(rule.exec(`AUTORESTART=${value}`)?.[3], value);
+    assert.equal(rule.exec(`autorestart = ${value}  `)?.[3], value);
+  }
+  for (const value of ["falsey", "trueish", "maybe", ""]) {
+    assert.equal(rule.exec(`AUTORESTART=${value}`)?.[3], undefined);
+  }
+  assert.equal(rule.exec("AUTORESTART=falsey")?.[4], "falsey");
 });

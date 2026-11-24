@@ -87,6 +87,10 @@ class ConfigCompletionProvider implements vscode.CompletionItemProvider {
       return MEMORY_SUGGESTIONS.map((value) => new vscode.CompletionItem(value, vscode.CompletionItemKind.Value));
     }
 
+    if (parsed.key === "AUTORESTART") {
+      return ["true", "false"].map((value) => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
+    }
+
     return [];
   }
 }

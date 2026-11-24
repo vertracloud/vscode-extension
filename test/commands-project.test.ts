@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test, vi } from "vitest";
 import * as vscode from "vscode";
 import { createFakeExtensionContext, registeredCommands, Uri } from "./vscode-mock";
 import { createDeps } from "../src/commands/index";
-import { registerProjectCommands } from "../src/commands/project";
+import { fieldsFromConfig, registerProjectCommands } from "../src/commands/project";
 
+let createImplementation: (...args: unknown[]) => Promise<unknown> = async () => ({});
 let deployImplementation: typeof import("../src/deploy/deploy").deployToApp = async () => ({});
 vi.mock("../src/deploy/deploy", () => ({
   deployToApp: (...args: Parameters<typeof deployImplementation>) => deployImplementation(...args),
-  createAppFromFolder: async () => ({}),
+  createAppFromFolder: (...args: unknown[]) => createImplementation(...args),
 }));
 import type { AppEntry, Store } from "../src/state";
 import type { ProjectLinks } from "../src/project/link";
@@ -152,4 +156,55 @@ test("deploy routes an API error through showError without throwing", async () =
 
   assert.equal(harness.errors.length, 1);
   assert.deepEqual(harness.polls, []);
+});
+
+test("fieldsFromConfig turns AUTORESTART into a boolean and leaves it out otherwise", () => {
+  const base = { NAME: "a", MAIN: "index.js", MEMORY: "256", VERSION: "recommended" };
+  assert.equal(fieldsFromConfig({ ...base, AUTORESTART: "false" }).auto_restart, false);
+  assert.equal(fieldsFromConfig({ ...base, AUTORESTART: "TRUE" }).auto_restart, true);
+  assert.equal(fieldsFromConfig(base).auto_restart, undefined);
+  assert.equal(fieldsFromConfig({ ...base, AUTORESTART: "" }).auto_restart, undefined);
+});
+
+async function createFromConfig(config: string): Promise<{ created: Array<Record<string, unknown>>; errors: unknown[] }> {
+  const dir = await mkdtemp(join(tmpdir(), "vertra-create-"));
+  await writeFile(join(dir, "vertracloud.config"), config, "utf8");
+  const created: Array<Record<string, unknown>> = [];
+  createImplementation = async (_client, opts) => {
+    created.push((opts as { fields: Record<string, unknown> }).fields);
+    return { id: "new-1", name: "a", status: "up" };
+  };
+  const harness = setup(async () => ({}));
+  const restoreQuickPick = answerQuickPick("Create a new application");
+  const originalOpen = vscode.window.showOpenDialog;
+  (vscode.window as { showOpenDialog: unknown }).showOpenDialog = () => Promise.resolve([Uri.file(dir)]);
+  try {
+    await vscode.commands.executeCommand("vertraCloud.project.deployFolder");
+  } finally {
+    (vscode.window as { showOpenDialog: unknown }).showOpenDialog = originalOpen;
+    restoreQuickPick();
+    harness.restore();
+    createImplementation = async () => ({});
+    await rm(dir, { recursive: true, force: true });
+  }
+  return { created, errors: harness.errors };
+}
+
+const BASE_CONFIG = "NAME=a\nMAIN=index.js\nMEMORY=256\nVERSION=recommended\n";
+
+test("creating from a folder with an invalid AUTORESTART shows the error and creates nothing", async () => {
+  const { created, errors } = await createFromConfig(`${BASE_CONFIG}AUTORESTART=maybe\n`);
+  assert.deepEqual(created, []);
+  assert.equal(errors.length, 1);
+  assert.match((errors[0] as Error).message, /AUTORESTART must be true or false\./);
+});
+
+test("creating from a folder sends AUTORESTART=TRUE as true and omits it when absent", async () => {
+  const upper = await createFromConfig(`${BASE_CONFIG}AUTORESTART=TRUE\n`);
+  assert.equal(upper.created[0].auto_restart, true);
+  const absent = await createFromConfig(BASE_CONFIG);
+  assert.equal(absent.created[0].auto_restart, undefined);
+  const empty = await createFromConfig(`${BASE_CONFIG}AUTORESTART=\n`);
+  assert.equal(empty.errors.length, 0);
+  assert.equal(empty.created[0].auto_restart, undefined);
 });

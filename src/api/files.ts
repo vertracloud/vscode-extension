@@ -1,4 +1,9 @@
-import type { APIApplicationFileTree, APIApplicationFile, APIApplicationFileContent } from "@vertracloud/api-types/v1";
+import type {
+  APIApplicationFileTree,
+  APIApplicationFile,
+  APIApplicationFileContent,
+  APIApplicationFileDelete,
+} from "@vertracloud/api-types/v1";
 import { ApiError } from "./client";
 import type { ApiClient } from "./client";
 
@@ -122,8 +127,8 @@ export function deleteFile(
   appId: string,
   path: string,
   opts?: Scoped,
-): Promise<unknown> {
-  return client.request(`/v1/apps/${appId}/files`, {
+): Promise<APIApplicationFileDelete | null | undefined> {
+  return client.request<APIApplicationFileDelete | null>(`/v1/apps/${appId}/files`, {
     method: "DELETE",
     query: { path, ...scope(opts) },
   });

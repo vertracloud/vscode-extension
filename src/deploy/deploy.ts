@@ -128,6 +128,7 @@ export interface CreateAppFields {
   build?: string;
   subdomain?: string;
   description?: string;
+  auto_restart?: boolean;
   workspace_id?: string;
 }
 
@@ -193,6 +194,7 @@ export async function createAppFromFolder(
             build: opts.fields.build,
             subdomain: opts.fields.subdomain,
             description: opts.fields.description,
+            auto_restart: opts.fields.auto_restart === undefined ? undefined : String(opts.fields.auto_restart),
             workspace_id: opts.fields.workspace_id,
           },
           zip,

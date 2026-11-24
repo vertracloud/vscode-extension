@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as vscode from "vscode";
 import { createAppFromFolder, deployToApp, type CreateAppFields, type CreateAppResult } from "../deploy/deploy";
-import { readConfig, writeConfigKey } from "../project/config";
+import { AUTORESTART_ERROR, parseAutoRestart, readConfig, writeConfigKey } from "../project/config";
 import { runProjectChecks, showChecks } from "../project/checks";
 import { link, pickFolder, unlink } from "../project/link";
 import { buildErrorHint } from "../l10n";
@@ -89,7 +89,7 @@ export async function createConfigInteractive(folderUri: vscode.Uri): Promise<Re
   return values;
 }
 
-function fieldsFromConfig(values: Record<string, string>, subdomain?: string): CreateAppFields {
+export function fieldsFromConfig(values: Record<string, string>, subdomain?: string): CreateAppFields {
   return {
     name: values.NAME,
     memory: Number.parseInt(values.MEMORY, 10),
@@ -99,6 +99,7 @@ function fieldsFromConfig(values: Record<string, string>, subdomain?: string): C
     build: values.BUILD,
     description: values.DESCRIPTION,
     subdomain: subdomain || values.SUBDOMAIN,
+    auto_restart: parseAutoRestart(values.AUTORESTART).value,
   };
 }
 
@@ -333,6 +334,10 @@ export function registerProjectCommands(deps: CommandDeps): void {
       values = await createConfigInteractive(folderUri);
     }
     if (!values) {return;}
+    if (!parseAutoRestart(values.AUTORESTART).valid) {
+      deps.showError(new Error(vscode.l10n.t(AUTORESTART_ERROR)));
+      return;
+    }
 
     const subdomain = await vscode.window.showInputBox({
       title: vscode.l10n.t("Subdomain (optional)"),

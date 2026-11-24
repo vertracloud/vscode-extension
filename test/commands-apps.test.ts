@@ -106,11 +106,34 @@ test("delete calls the endpoint once the name matches", async () => {
 
 test("showMetrics summarizes the last point plus the average and peak", () => {
   const lines = summarize([
-    { cpu: 10, ram: 1024, storage: 2048, date: "2026-09-19T00:00:00Z", network: [100, 200] },
-    { cpu: 30, ram: 3072, storage: 4096, date: "2026-09-19T00:01:00Z", network: [300, 400] },
+    { cpu: 10, ram: 1024, storage: 2048, date: "2026-09-19T00:00:00Z", network: [100, 200], events: [] },
+    { cpu: 30, ram: 3072, storage: 4096, date: "2026-09-19T00:01:00Z", network: [300, 400], events: [] },
   ]);
 
   assert.ok(lines[0].includes("30.00"), "CPU now comes from the last point");
   assert.ok(lines[4].includes("20.00") && lines[4].includes("30.00"), "CPU average and peak");
   assert.ok(lines[5].includes("2.0 KB") && lines[5].includes("3.0 KB"), "RAM average and peak");
+  assert.equal(lines.length, 6, "no events, no events line");
+});
+
+test("showMetrics lists restarts, automatic restarts, crashes and out-of-memory stops", () => {
+  const point = { cpu: 1, ram: 1024, storage: 2048, network: [1, 2] };
+  const lines = summarize([
+    {
+      ...point,
+      date: "2026-09-19T00:00:00Z",
+      events: [
+        { at: "2026-09-19T00:00:10Z", kind: "restart", out_of_memory: false },
+        { at: "2026-09-19T00:00:20Z", kind: "auto_restart", out_of_memory: true },
+      ],
+    },
+    {
+      ...point,
+      date: "2026-09-19T00:01:00Z",
+      events: [{ at: "2026-09-19T00:01:10Z", kind: "crash", out_of_memory: true }],
+    },
+  ]);
+
+  assert.equal(lines[6], "Events: 1 restarts · 1 automatic restarts · 1 crashes");
+  assert.equal(lines[7], "Stopped for lack of memory: 2");
 });

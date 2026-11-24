@@ -10,6 +10,7 @@ import {
   createFakeExtensionContext,
   executedCommands,
   registeredCommands,
+  window,
   workspace,
 } from "./vscode-mock";
 
@@ -187,6 +188,27 @@ describe("VertraFileSystemProvider", () => {
 
     assert.equal(calls.filter((call) => call.path.endsWith("/files")).length, 1);
     assert.equal(calls.filter((call) => call.path.endsWith("/files/tree")).length, 1);
+  });
+
+  it("delete avisa quando o espaço só volta no restart", async () => {
+    const messages: string[] = [];
+    const original = window.showInformationMessage;
+    window.showInformationMessage = (async (message: string) => {
+      messages.push(message);
+      return undefined;
+    }) as typeof window.showInformationMessage;
+    try {
+      const { client } = fakeClient((call) => (call.method === "DELETE" ? { space_released: "on_restart" } : [dirEntry("log.txt", "file")]));
+      await new VertraFileSystemProvider(client).delete(remoteUri("app-1", "log.txt"), { recursive: true });
+      const { client: quiet } = fakeClient((call) => (call.method === "DELETE" ? { space_released: "now" } : [dirEntry("log.txt", "file")]));
+      await new VertraFileSystemProvider(quiet).delete(remoteUri("app-1", "log.txt"), { recursive: true });
+      const { client: old } = fakeClient((call) => (call.method === "DELETE" ? null : [dirEntry("log.txt", "file")]));
+      await new VertraFileSystemProvider(old).delete(remoteUri("app-1", "log.txt"), { recursive: true });
+    } finally {
+      window.showInformationMessage = original;
+    }
+    assert.equal(messages.length, 1);
+    assert.match(messages[0], /disk space comes back when the app restarts/);
   });
 
   it("rename e delete batem nas rotas certas", async () => {

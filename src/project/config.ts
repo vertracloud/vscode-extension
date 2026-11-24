@@ -16,7 +16,7 @@ export interface ParsedConfig {
   lines: ParsedLine[];
 }
 
-export const KNOWN_KEYS = ["ID", "NAME", "MEMORY", "MAIN", "VERSION", "LANGUAGE", "SUBDOMAIN", "START", "BUILD", "DESCRIPTION"] as const;
+export const KNOWN_KEYS = ["ID", "NAME", "MEMORY", "MAIN", "VERSION", "LANGUAGE", "SUBDOMAIN", "START", "BUILD", "AUTORESTART", "DESCRIPTION"] as const;
 /** Values accepted by LANGUAGE; without it the platform detects the language from the manifest. */
 export const LANGUAGES = ["javascript", "typescript", "bun", "python", "static", "php", "go", "ruby", "java", "rust", "deno", "dotnet", "elixir"] as const;
 export type KnownKey = (typeof KNOWN_KEYS)[number];
@@ -31,6 +31,7 @@ export const KEY_DOCS: Record<KnownKey, string> = {
   SUBDOMAIN: "Desired subdomain: lowercase letters, digits and hyphens.",
   START: "Custom start command, overrides package.json.",
   BUILD: "Custom build command, run before start.",
+  AUTORESTART: "Restart the app automatically if it crashes: true (default) or false.",
   DESCRIPTION: "Short description shown in the dashboard.",
 };
 
@@ -118,6 +119,7 @@ export interface ConfigSource {
   build_command: string | null;
   subdomain: string | null;
   description?: string;
+  auto_restart?: boolean;
   /** App de imagem Docker: linguagem, versão, main, start e build vêm da imagem e ficam fora do arquivo. */
   custom_image?: unknown;
 }
@@ -135,6 +137,7 @@ export function buildConfigFromApp(app: ConfigSource): string {
     ["SUBDOMAIN", subdomain],
     ["START", fromImage ? "" : app.start_command ?? ""],
     ["BUILD", fromImage ? "" : app.build_command ?? ""],
+    ["AUTORESTART", app.auto_restart === undefined ? "" : String(app.auto_restart)],
     ["DESCRIPTION", app.description ?? ""],
   ];
   return lines
@@ -164,6 +167,16 @@ export interface ValidationIssue {
 
 const SUBDOMAIN_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
 const KNOWN_VERSIONS = ["recommended", "latest", "auto"];
+
+export const AUTORESTART_ERROR = "AUTORESTART must be true or false.";
+
+export function parseAutoRestart(raw: string | undefined): { value: boolean | undefined; valid: boolean } {
+  const normalized = raw?.trim().toLowerCase();
+  if (!normalized) {return { value: undefined, valid: true };}
+  if (normalized === "true") {return { value: true, valid: true };}
+  if (normalized === "false") {return { value: false, valid: true };}
+  return { value: undefined, valid: false };
+}
 
 /** Mirrors the CLI `doctor` rules for `vertracloud.config` values. */
 export async function validateConfig(
@@ -219,6 +232,10 @@ export async function validateConfig(
   }
   if (values.BUILD !== undefined && values.BUILD.length > 512) {
     issues.push({ key: "BUILD", severity: "error", message: "BUILD must be 512 characters or fewer." });
+  }
+
+  if (!parseAutoRestart(values.AUTORESTART).valid) {
+    issues.push({ key: "AUTORESTART", severity: "error", message: AUTORESTART_ERROR });
   }
 
   return issues;

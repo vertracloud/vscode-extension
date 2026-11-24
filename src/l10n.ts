@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import type { APIMetricEvent } from "@vertracloud/api-types/v1";
 import { formatIssues, issuesFromDetails } from "./images/issues";
 
 /** Estrutura mínima que qualquer erro de API (ApiError real ou fake de teste) precisa ter. */
@@ -270,9 +271,32 @@ export function buildErrorHint(code: string | null | undefined): string | undefi
       return vscode.l10n.t("The build was interrupted: try again.");
     case "INSTALL_SHIELD_BLOCKED":
       return vscode.l10n.t("Network protection blocked traffic during the build.");
+    case "IMAGE_VOLUME_REFUSED":
+      return vscode.l10n.t("The image declares a volume the platform does not accept: fix the Dockerfile and build again.");
+    case "IMAGE_LABEL_REFUSED":
+      return vscode.l10n.t("The image sets a label the platform reserves: remove it and build again.");
+    case "IMAGE_PULL_FAILED":
+      return vscode.l10n.t("The image could not be downloaded: try again shortly.");
     default:
       return undefined;
   }
+}
+
+export function metricEventLines(metrics: readonly { events?: readonly APIMetricEvent[] }[]): string[] {
+  const events = metrics.flatMap((metric) => metric.events ?? []);
+  if (events.length === 0) {return [];}
+  const count = (kind: APIMetricEvent["kind"]) => events.filter((event) => event.kind === kind).length;
+  const lines = [
+    vscode.l10n.t(
+      "Events: {0} restarts · {1} automatic restarts · {2} crashes",
+      count("restart"),
+      count("auto_restart"),
+      count("crash"),
+    ),
+  ];
+  const outOfMemory = events.filter((event) => event.out_of_memory).length;
+  if (outOfMemory > 0) {lines.push(vscode.l10n.t("Stopped for lack of memory: {0}", outOfMemory));}
+  return lines;
 }
 
 export function formatMegabytes(megabytes: number): string {

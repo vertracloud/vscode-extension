@@ -71,7 +71,7 @@ test("package.json identity is untouched", () => {
 
 test("buildErrorHint covers every last_build_error code and ignores unknown ones", async () => {
     const { buildErrorHint } = await import("../src/l10n");
-    for (const c of ["BUILD_FAILED", "BUILD_TIMEOUT", "BUILD_INTERRUPTED", "INSTALL_FAILED", "INSTALL_OUT_OF_MEMORY", "INSTALL_TIMEOUT", "INSTALL_SHIELD_BLOCKED"]) {
+    for (const c of ["BUILD_FAILED", "BUILD_TIMEOUT", "BUILD_INTERRUPTED", "INSTALL_FAILED", "INSTALL_OUT_OF_MEMORY", "INSTALL_TIMEOUT", "INSTALL_SHIELD_BLOCKED", "IMAGE_VOLUME_REFUSED", "IMAGE_LABEL_REFUSED", "IMAGE_PULL_FAILED"]) {
       assert.ok(buildErrorHint(c), c);
     }
     assert.equal(buildErrorHint(null), undefined);
