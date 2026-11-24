@@ -159,7 +159,9 @@ test("the grammar highlights the AUTORESTART boolean in any case, and only a who
   const grammar = JSON.parse(fs.readFileSync(path.join(__dirname, "../syntaxes/vertracloud-config.tmLanguage.json"), "utf8"));
   assert.ok(grammar.patterns.some((p: { include: string }) => p.include === "#autorestart"));
   assert.equal(grammar.repository.autorestart.captures["3"].name, "constant.language.boolean.vertracloud-config");
-  const rule = new RegExp(grammar.repository.autorestart.match);
+  const match: string = grammar.repository.autorestart.match;
+  assert.ok(match.includes("(?i:AUTORESTART)") && match.includes("(?i:true|false)"));
+  const rule = new RegExp(match.replaceAll("(?i:", "(?:"), "i");
   for (const value of ["true", "false", "TRUE", "False"]) {
     assert.equal(rule.exec(`AUTORESTART=${value}`)?.[3], value);
     assert.equal(rule.exec(`autorestart = ${value}  `)?.[3], value);
