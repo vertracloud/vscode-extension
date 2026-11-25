@@ -87,7 +87,7 @@ describe("RealtimeManager", () => {
     manager.dispose();
   });
 
-  it("sentinela *_note desconhecida ou malformada não vaza crua e texto livre de system continua", async () => {
+  it("sentinela desconhecida ou malformada sai crua e só o marcador de início da execução some", async () => {
     const { client, opened } = makeClient();
     const { manager, channel } = makeManager(client);
     manager.toggle("app1", "app");
@@ -95,14 +95,16 @@ describe("RealtimeManager", () => {
 
     opened[0].push("event: system\ndata: future_note:something:42\n\n");
     opened[0].push("event: system\ndata: run_note:started:2026-11-22T10:00:00Z\n\n");
+    opened[0].push("event: system\ndata: 2026-11-22T10:00:01Z run_note:started:2026-11-22T10:00:00.123Z\n\n");
+    opened[0].push("event: system\ndata: run_note:started:soon\n\n");
     opened[0].push("event: system\ndata: Connection Closed\n\n");
     await tick();
 
-    assert.deepEqual(channel.lines, ["Connection Closed"]);
+    assert.deepEqual(channel.lines, ["future_note:something:42", "run_note:started:soon", "Connection Closed"]);
     manager.dispose();
   });
 
-  it("run_note:port_not_listening vira aviso com a porta e porta inválida não é impressa", async () => {
+  it("run_note:port_not_listening vira aviso com a porta e porta inválida sai crua", async () => {
     const { client, opened } = makeClient();
     const { manager, channel } = makeManager(client);
     manager.toggle("app1", "app");
@@ -116,11 +118,14 @@ describe("RealtimeManager", () => {
 
     assert.deepEqual(channel.lines, [
       "[Vertra] The app started but did not listen on port 3000. Make sure it listens on that port on all interfaces.",
+      "run_note:port_not_listening:abc",
+      "run_note:port_not_listening",
+      "run_note:port_not_listening:3000:x",
     ]);
     manager.dispose();
   });
 
-  it("runtime_note:line_changed vira aviso e formato inválido não é impresso", async () => {
+  it("runtime_note:line_changed vira aviso e formato inválido sai cru", async () => {
     const { client, opened } = makeClient();
     const { manager, channel } = makeManager(client);
     manager.toggle("app1", "app");
@@ -132,7 +137,12 @@ describe("RealtimeManager", () => {
     opened[0].push("event: system\ndata: runtime_note:line_changed:nodejs:a b:26.1.0:retired\n\n");
     await tick();
 
-    assert.deepEqual(channel.lines, ["[Vertra] Runtime changed from 22.23.5 to 26.1.0"]);
+    assert.deepEqual(channel.lines, [
+      "[Vertra] Runtime changed from 22.23.5 to 26.1.0",
+      "runtime_note:line_changed:nodejs:22.23.5:26.1.0:whatever",
+      "runtime_note:line_changed:nodejs:22.23.5",
+      "runtime_note:line_changed:nodejs:a b:26.1.0:retired",
+    ]);
     manager.dispose();
   });
 
@@ -214,6 +224,7 @@ describe("RealtimeManager", () => {
       "[Vertra] The app started but did not listen on port 3000. Make sure it listens on that port on all interfaces.",
       "[Vertra] Crash loop detected — auto-restart temporarily suspended.",
       "[Vertra] Deploy 1111111 crashed on start.",
+      "2026-11-24T12:00:05.000Z future_note:something",
       "2026-11-24T12:00:06.000Z Connection Closed",
     ]);
     manager.dispose();
@@ -291,6 +302,97 @@ describe("RealtimeManager", () => {
     manager.dispose();
   });
 
+  it("mensagens de controle do stream somem e conexão e histórico vazio viram aviso", async () => {
+    const { client, opened } = makeClient();
+    const { manager, channel } = makeManager(client);
+    manager.toggle("app1", "app");
+    await tick();
+
+    for (const message of [
+      "Connected to realtime log stream",
+      "Loading historical logs",
+      "No logs found",
+      "Historical logs loaded",
+      "Starting live logs",
+      "Attached to live logs",
+      "Resuming live logs",
+      "2026-11-24T12:00:00Z Container stopped",
+    ]) {
+      opened[0].push(`event: system\ndata: ${message}\n\n`);
+    }
+    await tick();
+
+    assert.deepEqual(channel.lines, ["[Vertra] Connected in real time", "[Vertra] No logs found"]);
+    manager.dispose();
+  });
+
+  it("deploy_note:recreated traduz cada motivo, cai no texto genérico e formato inválido sai cru", async () => {
+    const { client, opened } = makeClient();
+    const { manager, channel } = makeManager(client);
+    manager.toggle("app1", "app");
+    await tick();
+
+    for (const note of [
+      "deploy_note:recreated:plan_memory",
+      "2026-11-24T12:00:00Z deploy_note:recreated:recreate_required",
+      "deploy_note:recreated:brand_new_reason",
+      "deploy_note:recreated",
+      "deploy_note:recreated:Bad-Reason",
+      "deploy_note:recreated:a:b",
+    ]) {
+      opened[0].push(`event: system\ndata: ${note}\n\n`);
+    }
+    await tick();
+
+    assert.deepEqual(channel.lines, [
+      "[Vertra] Restarted without the zero-downtime deploy: the plan has no free memory to run both versions at once.",
+      "[Vertra] Restarted without the zero-downtime deploy: the change required recreating the app.",
+      "[Vertra] Restarted without the zero-downtime deploy.",
+      "[Vertra] Restarted without the zero-downtime deploy.",
+      "deploy_note:recreated:Bad-Reason",
+      "deploy_note:recreated:a:b",
+    ]);
+    manager.dispose();
+  });
+
+  it("restart_note:unsupported_node vira aviso do Node.js do runtime", async () => {
+    const { client, opened } = makeClient();
+    const { manager, channel } = makeManager(client);
+    manager.toggle("app1", "app");
+    await tick();
+
+    opened[0].push("event: system\ndata: restart_note:unsupported_node\n\n");
+    await tick();
+
+    assert.deepEqual(channel.lines, [
+      "[Vertra] App stopped — the runtime's Node.js version is not supported by this project. Change the runtime version in the app settings.",
+    ]);
+    manager.dispose();
+  });
+
+  it("deploy sem queda lê na ordem: versão atual, nova versão marcada, descarte e métricas fora", async () => {
+    const { client, opened } = makeClient();
+    const { manager, channel } = makeManager(client);
+    manager.toggle("app1", "app");
+    await tick();
+
+    const a = "11111111-1111-4111-8111-111111111111";
+    opened[0].push("event: logs\ndata: serving\n\n");
+    opened[0].push("event: system\ndata: install_note:started\n\n");
+    opened[0].push("event: next_logs\ndata: npm ci\n\n");
+    opened[0].push('event: next_metrics\ndata: {"cpu_percent":1}\n\n');
+    opened[0].push(`event: system\ndata: deploy_note:discarded:${a}:install_oom\n\n`);
+    await tick();
+
+    assert.deepEqual(channel.lines, [
+      "serving",
+      "[Vertra] Dependency install started",
+      "[New version] npm ci",
+      "[Vertra] Deploy 1111111 was discarded: it ran out of memory while installing dependencies. The previous version is still online.",
+    ]);
+    manager.dispose();
+  });
+
   it("metrics é ignorado e a conexão não pede metrics=true", async () => {
     const queries: unknown[] = [];
     const base = makeClient();
@@ -324,7 +426,7 @@ describe("RealtimeManager", () => {
     opened[0].push("event: system\ndata: image_note:pulling:1234567890\n\n");
     await tick();
 
-    assert.deepEqual(channel.lines, ["[Vertra] Pulling the image (100%)"]);
+    assert.deepEqual(channel.lines, ["[Vertra] Pulling the image (100%)", "image_note:pulling:1234567890"]);
     manager.dispose();
   });
 
@@ -348,6 +450,7 @@ describe("RealtimeManager", () => {
 
     assert.deepEqual(channel.lines, [
       "[Vertra] Pulling the image (42%)",
+      "image_note:pulling:abc",
       "[Vertra] Creating the container",
       "[Vertra] Starting the container",
       "[Vertra] Waiting for the app to open its port",
