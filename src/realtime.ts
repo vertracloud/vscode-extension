@@ -14,7 +14,15 @@ const MAX_ATTEMPTS = 5;
 const MAX_BACKOFF_MS = 30_000;
 // OutputChannel não renderiza escape ANSI: sem remover, cada linha colorida do app chega suja.
 const ANSI = /\u001b\[[0-9;?]*[ -/]*[@-~]/g;
-const UNTRANSLATED_NOTE = /^[a-z]+(?:_[a-z]+)*_note(?::.*)?$/;
+const RUN_STARTED = /^run_note:started:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/;
+const HIDDEN_MESSAGES = new Set([
+  "Loading historical logs",
+  "Historical logs loaded",
+  "Starting live logs",
+  "Attached to live logs",
+  "Resuming live logs",
+  "Container stopped",
+]);
 const RUNTIME_LINE_CHANGED =
   /^runtime_note:line_changed:[a-z0-9_-]+:([0-9A-Za-z][0-9A-Za-z._+-]*):([0-9A-Za-z][0-9A-Za-z._+-]*):(?:retired|unavailable|requested)$/;
 const PORT_NOT_LISTENING = /^run_note:port_not_listening:(\d{1,5})$/;
@@ -87,6 +95,18 @@ function translateDeployNote(message: string): string | undefined {
     }
     return vscode.l10n.t("Deploy {0} was discarded; the previous version is still online.", short(parts[2]));
   }
+  if (parts[1] === "recreated" && (parts.length === 2 || (parts.length === 3 && DISCARD_REASON.test(parts[2])))) {
+    switch (parts[2]) {
+      case "plan_memory":
+        return vscode.l10n.t("Restarted without the zero-downtime deploy: the plan has no free memory to run both versions at once.");
+      case "host_memory":
+        return vscode.l10n.t("Restarted without the zero-downtime deploy: the server had no free memory.");
+      case "recreate_required":
+        return vscode.l10n.t("Restarted without the zero-downtime deploy: the change required recreating the app.");
+      default:
+        return vscode.l10n.t("Restarted without the zero-downtime deploy.");
+    }
+  }
   if (parts[1] === "rollback" && parts.length === 4 && STRICT_UUID.test(parts[2]) && STRICT_UUID.test(parts[3])) {
     return vscode.l10n.t("Deploy {0} crashed on start. We went back to {1}.", short(parts[2]), short(parts[3]));
   }
@@ -94,6 +114,8 @@ function translateDeployNote(message: string): string | undefined {
 }
 
 function translateSystem(message: string): string | undefined {
+  if (message === "Connected to realtime log stream") {return vscode.l10n.t("Connected in real time");}
+  if (message === "No logs found") {return vscode.l10n.t("No logs found");}
   if (message === "app_restarted") {return vscode.l10n.t("Application restarted");}
   if (message === "install_note:started") {
     return vscode.l10n.t("Dependency install started");
@@ -151,6 +173,11 @@ function translateSystem(message: string): string | undefined {
       return vscode.l10n.t("Crash loop detected — auto-restart temporarily suspended.");
     }
     if (restart[1] === "oom_killed") {return vscode.l10n.t("App stopped — plan memory exhausted.");}
+    if (restart[1] === "unsupported_node") {
+      return vscode.l10n.t(
+        "App stopped — the runtime's Node.js version is not supported by this project. Change the runtime version in the app settings.",
+      );
+    }
     return vscode.l10n.t("Application restarted automatically.");
   }
 
@@ -238,12 +265,12 @@ export class RealtimeManager {
     }
     if (event.event !== "system") {return;}
     const message = NOTE_STAMP.exec(event.data)?.[1] ?? event.data;
+    if (HIDDEN_MESSAGES.has(message) || RUN_STARTED.test(message)) {return;}
     const translated = translateSystem(message);
     if (translated) {
       channel.appendLine(`[Vertra] ${translated}`);
       return;
     }
-    if (!message.startsWith(DEPLOY_NOTE_PREFIX) && UNTRANSLATED_NOTE.test(message)) {return;}
     channel.appendLine(event.data);
   }
 

@@ -45,7 +45,7 @@ The project file gets syntax highlighting, completion, hover help and inline err
 ### Applications
 
 - Start, stop and restart — also **Restart (reinstall dependencies)** and **Restart (force build)**.
-- **Show logs** prints recent output; **Toggle realtime logs** streams it live to an output channel and reconnects while the connection stays healthy. During a zero-downtime deploy, the new version's install and build output appears labeled `[New version]`, and a discarded new version is explained with its reason.
+- **Show logs** prints recent output; **Toggle realtime logs** streams it live to an output channel and reconnects while the connection stays healthy. During a zero-downtime deploy, the new version's install and build output appears labeled `[New version]`, a discarded new version is explained with its reason, and a deploy that had to restart the app instead says why. Platform notes appear as readable messages in your VS Code language, and the stream's own housekeeping messages are hidden.
 - **Show metrics** summarizes CPU, memory and network usage, plus the restarts, automatic restarts and crashes (with out-of-memory stops) in the period.
 - **Manage environment variables** adds, edits and removes variables. Values are masked, and never copied or logged unless you ask.
 - **Open remote files** mounts the application's files as a `vertra://` folder, so you can open, edit and save them in place. Files open and save up to 10 MiB each; larger ones are refused with a message. Deleting, moving and uploading ask first. When a deleted file is still open in the app, a notice tells you the disk space comes back when the app restarts.
