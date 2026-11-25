@@ -698,7 +698,6 @@
   "No logs found": "No logs found",
   "Restarted without the zero-downtime deploy.": "Restarted without the zero-downtime deploy.",
   "Restarted without the zero-downtime deploy: the plan has no free memory to run both versions at once.": "Restarted without the zero-downtime deploy: the plan has no free memory to run both versions at once.",
-  "Restarted without the zero-downtime deploy: the server had no free memory.": "Restarted without the zero-downtime deploy: the server had no free memory.",
   "Restarted without the zero-downtime deploy: the change required recreating the app.": "Restarted without the zero-downtime deploy: the change required recreating the app.",
   "App stopped — the runtime's Node.js version is not supported by this project. Change the runtime version in the app settings.": "App stopped — the runtime's Node.js version is not supported by this project. Change the runtime version in the app settings."
 }

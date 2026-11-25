@@ -99,8 +99,6 @@ function translateDeployNote(message: string): string | undefined {
     switch (parts[2]) {
       case "plan_memory":
         return vscode.l10n.t("Restarted without the zero-downtime deploy: the plan has no free memory to run both versions at once.");
-      case "host_memory":
-        return vscode.l10n.t("Restarted without the zero-downtime deploy: the server had no free memory.");
       case "recreate_required":
         return vscode.l10n.t("Restarted without the zero-downtime deploy: the change required recreating the app.");
       default:

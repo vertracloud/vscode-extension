@@ -698,7 +698,6 @@
   "No logs found": "No se encontraron logs",
   "Restarted without the zero-downtime deploy.": "Reiniciado sin usar el despliegue sin downtime.",
   "Restarted without the zero-downtime deploy: the plan has no free memory to run both versions at once.": "Reiniciado sin usar el despliegue sin downtime: el plan no tiene memoria libre para ejecutar las dos versiones a la vez.",
-  "Restarted without the zero-downtime deploy: the server had no free memory.": "Reiniciado sin usar el despliegue sin downtime: el servidor no tenía memoria libre.",
   "Restarted without the zero-downtime deploy: the change required recreating the app.": "Reiniciado sin usar el despliegue sin downtime: el cambio requirió recrear la app.",
   "App stopped — the runtime's Node.js version is not supported by this project. Change the runtime version in the app settings.": "Aplicación detenida — la versión de Node.js del runtime no es compatible con este proyecto. Cambia la versión del runtime en los ajustes de la app."
 }

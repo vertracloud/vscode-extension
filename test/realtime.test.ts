@@ -334,7 +334,6 @@ describe("RealtimeManager", () => {
 
     for (const note of [
       "deploy_note:recreated:plan_memory",
-      "deploy_note:recreated:host_memory",
       "2026-11-24T12:00:00Z deploy_note:recreated:recreate_required",
       "deploy_note:recreated:brand_new_reason",
       "deploy_note:recreated",
@@ -347,7 +346,6 @@ describe("RealtimeManager", () => {
 
     assert.deepEqual(channel.lines, [
       "[Vertra] Restarted without the zero-downtime deploy: the plan has no free memory to run both versions at once.",
-      "[Vertra] Restarted without the zero-downtime deploy: the server had no free memory.",
       "[Vertra] Restarted without the zero-downtime deploy: the change required recreating the app.",
       "[Vertra] Restarted without the zero-downtime deploy.",
       "[Vertra] Restarted without the zero-downtime deploy.",
