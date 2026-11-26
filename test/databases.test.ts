@@ -110,7 +110,8 @@ describe("commands/databases", () => {
     const entry: DbEntry = {
       db: {
         id: "db-1",
-        cluster: 1,
+        region: "ny",
+        node: "ny1",
         type: 1,
         name: "my-db",
         description: "",

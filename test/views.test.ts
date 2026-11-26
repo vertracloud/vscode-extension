@@ -22,7 +22,8 @@ function fakeUser(): APIUserInfoResponse {
     applications: [
       {
         id: "app1",
-        cluster: 1,
+        region: "ny",
+        node: "ny1",
         type: 2,
         name: "my-app",
         owner_id: "1",
@@ -46,7 +47,8 @@ function fakeUser(): APIUserInfoResponse {
       },
       {
         id: "app2",
-        cluster: 1,
+        region: "ny",
+        node: "ny1",
         type: 2,
         name: "secret-app",
         owner_id: "1",

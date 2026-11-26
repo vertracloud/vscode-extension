@@ -19,7 +19,8 @@ function fakeUser(overrides?: Partial<APIUserInfoResponse>): APIUserInfoResponse
     applications: [
       {
         id: "app1",
-        cluster: 1,
+        region: "ny",
+        node: "ny1",
         type: 2,
         name: "my-app",
         owner_id: "1",
