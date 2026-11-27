@@ -2,7 +2,7 @@
 
 Releases are published by CI. Every push to `main` runs the `release` workflow: release-please
 opens or updates a release PR, and when that PR is merged the workflow builds the package, runs
-`npm run package:check`, publishes the same `.vsix` to the Visual Studio Marketplace and Open VSX,
+`pnpm run package:check`, publishes the same `.vsix` to the Visual Studio Marketplace and Open VSX,
 and attaches it to the GitHub release.
 
 The steps below are the manual fallback, for when the workflow is unavailable or a maintainer needs
@@ -20,12 +20,12 @@ Check every item before building the release artifact:
 - [ ] No dependency in `package.json` (`dependencies` or `devDependencies`) uses a `file:` or
       `link:` reference. `@vertracloud/api-types` in particular must point to a published npm
       version, not `file:../api-types`, or the packaged extension will fail to resolve it.
-- [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` all pass locally.
+- [ ] `pnpm run lint`, `pnpm run typecheck`, `pnpm test`, `pnpm run build` all pass locally.
 
 ## Build the package
 
 ```
-npm run package
+pnpm run package
 ```
 
 This produces `dist/vertra-cloud-<version>.vsix`.
@@ -33,7 +33,7 @@ This produces `dist/vertra-cloud-<version>.vsix`.
 ## Inspect the package
 
 ```
-npm run package:check
+pnpm run package:check
 ```
 
 The check fails when the package holds source, tests, source maps, `node_modules`, `.env` files or

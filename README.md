@@ -184,7 +184,7 @@ Every command is in the Command Palette under **Vertra Cloud**, and in the conte
 Issues and pull requests are welcome at [github.com/vertracloud/vscode-extension](https://github.com/vertracloud/vscode-extension). Before sending a change, run:
 
 ```bash
-npm run lint && npm run typecheck && npm test
+pnpm run lint && pnpm run typecheck && pnpm test
 ```
 
 ## License

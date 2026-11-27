@@ -1457,7 +1457,7 @@
     "paas"
   ],
   "scripts": {
-    "vscode:prepublish": "npm run build",
+    "vscode:prepublish": "pnpm run build",
     "build": "node esbuild.mjs --production",
     "build:dev": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
@@ -1465,11 +1465,12 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package": "mkdir -p dist && npm run build && vsce package --no-dependencies -o dist/vertra-cloud-$npm_package_version.vsix",
+    "package": "mkdir -p dist && pnpm run build && vsce package --no-dependencies -o dist/vertra-cloud-$npm_package_version.vsix",
     "package:inspect": "vsce ls",
     "package:check": "node scripts/inspect-vsix.mjs",
     "package:dev": "mkdir -p dist && VERTRA_API_URL=${VERTRA_API_URL:-http://localhost:4000} vsce package --no-dependencies -o dist/vertra-cloud-$npm_package_version-dev.vsix"
   },
+  "packageManager": "pnpm@10.34.9",
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/vscode": "^1.85.0",
@@ -1507,5 +1508,14 @@
     "url": "https://github.com/vertracloud/vscode-extension/issues"
   },
   "homepage": "https://docs.vertracloud.app/vscode-extension",
-  "license": "MIT"
+  "license": "MIT",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@vscode/vsce-sign",
+      "esbuild"
+    ],
+    "ignoredBuiltDependencies": [
+      "keytar"
+    ]
+  }
 }
