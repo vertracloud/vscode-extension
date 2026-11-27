@@ -23,7 +23,7 @@ function fakeUser(): APIUserInfoResponse {
       {
         id: "app1",
         region: "ny",
-        node: "ny1",
+        node: "amethyst",
         type: 2,
         name: "my-app",
         owner_id: "1",
@@ -48,7 +48,7 @@ function fakeUser(): APIUserInfoResponse {
       {
         id: "app2",
         region: "ny",
-        node: "ny1",
+        node: "amethyst",
         type: 2,
         name: "secret-app",
         owner_id: "1",

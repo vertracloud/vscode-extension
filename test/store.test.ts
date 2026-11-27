@@ -20,7 +20,7 @@ function fakeUser(overrides?: Partial<APIUserInfoResponse>): APIUserInfoResponse
       {
         id: "app1",
         region: "ny",
-        node: "ny1",
+        node: "amethyst",
         type: 2,
         name: "my-app",
         owner_id: "1",

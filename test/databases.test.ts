@@ -111,7 +111,7 @@ describe("commands/databases", () => {
       db: {
         id: "db-1",
         region: "ny",
-        node: "ny1",
+        node: "amethyst",
         type: 1,
         name: "my-db",
         description: "",
